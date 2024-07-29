@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #include <curand.h>
 #include <assert.h>
+#include "matrix.h"
 
 // NVIDIA A30 L2 cache size in bytes
 #define L2_CACHE_SIZE 25165824

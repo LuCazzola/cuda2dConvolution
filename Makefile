@@ -19,7 +19,7 @@ OPT := -std=c11 -Wall -lm
 NVCC_FLAGS := -Xcompiler -Wall -lm -lcurand
 
 # Main executable to test function
-BUILDNAME := imageProcessingProject
+BUILDNAME := project-imageProcessing
 # File to build CPU statistics for analysis purposes
 BUILDBENCH := benchmark
 
@@ -28,6 +28,7 @@ MAIN := main.cu
 BENCHMARK := benchmark.cu
 
 OBJECTS := \
+	$(BUILDDIR)/matrix.o \
 	$(BUILDDIR)/opt_parser.o
 
 GPU_OBJECTS := \

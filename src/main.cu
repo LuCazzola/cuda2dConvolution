@@ -1,4 +1,5 @@
 extern "C" { 
+    #include "headers/matrix.h"
 	#include "headers/common.h"
     #include "headers/opt_parser.h"
 }
@@ -62,7 +63,7 @@ int main(int argc, char * argv []){
     // ===================================== Memory Allocations =====================================
 
     // host matrix, device matrix, copy of host matrix pre-transposition
-    matrix h_mat, d_mat, cpy, filler;
+    matrix h_mat, d_mat;
 
     h_mat = (matrix) malloc(ROWS*COLS*sizeof(matrix_element));  // Allocate matrix on Host
     checkCuda( cudaMalloc((void **)&d_mat, ROWS*COLS*sizeof(matrix_element)) );  // Allocate space on the DEVICE global memory
@@ -71,63 +72,17 @@ int main(int argc, char * argv []){
     fill_matrix(h_mat, ROWS, COLS);  // fill the host matrix with random values
 	checkCuda( cudaMemcpy(d_mat, h_mat, ROWS*COLS*sizeof(matrix_element), cudaMemcpyHostToDevice) );  // Copy from Host to device
 
-    if (PRINT_MAT_ERROR){
-        cpy = matrix_copy(h_mat, ROWS, COLS);
-    }
 
-    // ===================================== GPU TRANSPOSE KERNEL LAUNCH =====================================
+    // ===================================== RUN =====================================
     
-    // run infos
-    print_run_infos(method, N, block_size, th_size_x, th_size_y);
-    // Setup a timer
-    TIMER_DEF;
-    // "Wake up" the GPU before executing the kernel
-    warm_up_gpu<<<gridSize, blockSize>>> ();
-    checkCuda( cudaDeviceSynchronize() );
-    // allocate a filler block as large as the L2 cache and access it
-    // that's used to basically flush the L2 cache from previous accesses
-    checkCuda( cudaMalloc((void **)&filler, 2*L2_CACHE_SIZE) );  
-    checkCuda( cudaMemset(filler, 0, 2*L2_CACHE_SIZE) );
-    checkCuda( cudaFree(filler) );
-
-    // run test on transpose_blocks_gpu() kernel
-    if (strcmp(method, "blocks_naive") == 0) {
-        TIMER_START;
-        transpose_blocks_gpu <<<gridSize, blockSize>>> (d_mat, SIZE, BLK_SIZE, SIZE*SIZE);
-        checkCuda( cudaDeviceSynchronize() );
-        TIMER_STOP;
-    }
-    // run test on transpose_blocks_gpu_coalesced() kernel
-    if (strcmp(method, "blocks_coalesced") == 0) {
-        size_t sharedBlockSize = 2 * BLK_SIZE*BLK_SIZE;
-
-        TIMER_START;
-        transpose_blocks_gpu_coalesced <<<gridSize, blockSize, sharedBlockSize*sizeof(matrix_element)>>> (d_mat, SIZE, BLK_SIZE, SIZE*SIZE);
-        checkCuda( cudaDeviceSynchronize() );
-        TIMER_STOP;
-    }
     
-    // copy back to host
-    checkCuda( cudaMemcpy(h_mat, d_mat, ROWS * COLS * sizeof(matrix_element), cudaMemcpyDeviceToHost) );
-    // Print out execution time & effective bandwidth
-    print_metrics (TIMER_ELAPSED, SIZE);
 
-    if (PRINT_MAT_ERROR){
-        print_transpose_error(cpy, h_mat, SIZE);
-    }
-    if (PRINT_MATRICES){
-        printf("=== Original matrix === :\n=\n");
-        print_matrix(cpy, ROWS, COLS);
-        printf("\n=== Transposed matrix === :\n=\n");
-        print_matrix(h_mat, ROWS, COLS);
-    }
 
-    // Free memory
+
+    // ===================================== FREE MEMORY =====================================
+
     free(h_mat);  // on Host
     checkCuda( cudaFree(d_mat) );  // on Device
-    if (PRINT_MAT_ERROR){
-        free(cpy);
-    }
 
 	return 0;
 }
