@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <cuda_runtime.h>
 
 #define IMAGE_DIM 5
 
@@ -11,38 +10,33 @@ void generate_image(int dim, int* image){
     }
 }
 
-__global__
 void apply_convolution(int image_dim, int* image, int filter_dim, float* filter, int* output){
     if(filter_dim % 2 == 0){ // Only allow odd filter size
         perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
         exit(EXIT_FAILURE);
     }
-
-    int thread_x = blockIdx.x * blockDim.x + threadIdx.x;
-    int thread_y = blockIdx.y * blockDim.y + threadIdx.y;
+    
     float sum = 0.0;
     int filter_center = filter_dim / 2;
 
-    //for(int i = 0; i < image_dim; i++){
-    //    for(int j = 0; j < image_dim; j++){
-    if(thread_x >= 0 && thread_x < image_dim && thread_y >= 0 && thread_y < image_dim){
-        sum = 0.0;
-        for(int k = 0; k < filter_dim; k++){
-            for(int l = 0; l < filter_dim; l++){
-                int patch_i = i-filter_center+k;
-                int patch_j = j-filter_center+l;
-                if(patch_i < 0 || patch_i >= image_dim || patch_j < 0 || patch_j >= image_dim){
-                    sum += 0;
-                }
-                else {
-                    sum += filter[k*filter_dim+l] * (float) image[patch_i*image_dim+patch_j];
+    for(int i = 0; i < image_dim; i++){
+        for(int j = 0; j < image_dim; j++){
+            sum = 0.0;
+            for(int k = 0; k < filter_dim; k++){
+                for(int l = 0; l < filter_dim; l++){
+                    int patch_i = i-filter_center+k;
+                    int patch_j = j-filter_center+l;
+                    if(patch_i < 0 || patch_i >= image_dim || patch_j < 0 || patch_j >= image_dim){
+                        sum += 0;
+                    }
+                    else {
+                        sum += filter[k*filter_dim+l] * (float) image[patch_i*image_dim+patch_j];
+                    }
                 }
             }
+            output[i*image_dim+j] = (int) sum;
         }
-        output[i*image_dim+j] = (int) sum;
     }
-        //}
-    //}
 }
 
 void print_matrix(int dim, int* mat){
