@@ -12,8 +12,8 @@ void generate_image(int dim, int* image){
 }
 
 __global__
-void apply_convolution(int image_dim, int* image, int filter_dim, float* filter, int* output){
-    if(filter_dim % 2 == 0){ // Only allow odd filter size
+void gpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output){
+    if(K_dim % 2 == 0){
         perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
         exit(EXIT_FAILURE);
     }
@@ -21,68 +21,51 @@ void apply_convolution(int image_dim, int* image, int filter_dim, float* filter,
     int thread_x = blockIdx.x * blockDim.x + threadIdx.x;
     int thread_y = blockIdx.y * blockDim.y + threadIdx.y;
     float sum = 0.0;
-    int filter_center = filter_dim / 2;
+    int K_center = K_dim / 2;
 
-    //for(int i = 0; i < image_dim; i++){
-    //    for(int j = 0; j < image_dim; j++){
     if(thread_x >= 0 && thread_x < image_dim && thread_y >= 0 && thread_y < image_dim){
         sum = 0.0;
-        for(int k = 0; k < filter_dim; k++){
-            for(int l = 0; l < filter_dim; l++){
-                int patch_i = i-filter_center+k;
-                int patch_j = j-filter_center+l;
+        for(int i = 0; i < K_dim; i++){
+            for(int j = 0; j < K_dim; j++){
+                int patch_i = thread_x-K_center+i;
+                int patch_j = thread_y-K_center+j;
                 if(patch_i < 0 || patch_i >= image_dim || patch_j < 0 || patch_j >= image_dim){
                     sum += 0;
                 }
                 else {
-                    sum += filter[k*filter_dim+l] * (float) image[patch_i*image_dim+patch_j];
+                    sum += K[i*K_dim+j] * (float) image[patch_i*image_dim+patch_j];
                 }
             }
         }
-        output[i*image_dim+j] = (int) sum;
-    }
-        //}
-    //}
-}
-
-void print_matrix(int dim, int* mat){
-    for(int i = 0; i < dim; i++){
-        for(int j = 0; j < dim; j++){
-            printf("%2d ", mat[i*dim+j]);
-        }
-        printf("\n");
+        output[thred_x*image_dim+thread_y] = (int) sum;
     }
 }
 
-void print_filter(int dim, float* mat){
-    for(int i = 0; i < dim; i++){
-        for(int j = 0; j < dim; j++){
-            printf("%2.2f ", mat[i*dim+j]);
-        }
-        printf("\n");
+void cpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output){
+    if(filter_dim % 2 == 0){
+        perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
+        exit(EXIT_FAILURE);
     }
-}
-
-int main(int argc, char** argv){
-    int* image = (int *) malloc(IMAGE_DIM * IMAGE_DIM * sizeof(int));
-    int* output = (int *) malloc(IMAGE_DIM * IMAGE_DIM * sizeof(int));
-    generate_image(IMAGE_DIM, image);
-
-    printf("Image:\n");
-    print_matrix(IMAGE_DIM, image);
-    printf("\n");
-
-    int filter_dim = 3;
-    float filter[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 2.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
-
-    printf("Filter:\n");
-    print_filter(filter_dim, filter);
     
-    apply_convolution(IMAGE_DIM, image, filter_dim, filter, output);
-    printf("\n");
-    printf("Output:\n");
-    print_matrix(IMAGE_DIM, output);
-    
-    free(image);
-    free(output);
+    float sum = 0.0;
+    int K_center = K_dim / 2;
+
+    for(int u = 0; u < image_dim; u++){
+        for(int v = 0; v < image_dim; v++){
+            sum = 0.0;
+            for(int i = 0; i < K_dim; i++){
+                for(int j = 0; j < K_dim; j++){
+                    int patch_u = u-K_center+i;
+                    int patch_v = v-K_center+j;
+                    if(patch_u < 0 || patch_u >= image_dim || patch_v < 0 || patch_v >= image_dim){
+                        sum += 0;
+                    }
+                    else {
+                        sum += K[i*K_dim+j] * (float) image[patch_u*image_dim+patch_v];
+                    }
+                }
+            }
+            output[u*image_dim+v] = (int) sum;
+        }
+    }
 }
