@@ -1,22 +1,35 @@
 #!/bin/bash
 
+### Options to run the test on the Marzola cluster ###
+
+#SBATCH --job-name=parallelImageProcessing
+#SBATCH --output=output.out
+#SBATCH --error=error.err
+
+#SBATCH --partition=edu5
+#SBATCH --nodes=1 
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+
+
 # DESCRIPTION : 
-# "homework-1" runs one out of 2 matrix transposition algorithms showing the related results
+# ...
 
 # OUTPUT :
-# prompts details about the run on the terminal and computes 2 metrics :
-#  - execution time : time to compute the transpose() function
-#  - effective bandwidth : estimated bandwidth of transpose() function
-
+# ...
 
 ### User Variables ###
-N=8               # defines the matrix size : ( 2^N x 2^N )
 
-method="blocks"    # chose which version of transpose() to run between "transpose_naive()" and "transpose_blocks()" by setting :
-                   #   method="naive" : run transpose_naive()
-                   #   method="blocks" : run transpose_blocks()
+method="blocks_naive"   # chose which version of transpose to run between "transpose_blocks_gpu()" and "transpose_blocks_gpu_coalesced()" by setting :
+                        #   method="blocks_naive" : run transpose_blocks_gpu() 
+                        #   method="blocks_coalesced" : run transpose_blocks_gpu_coalesced()
 
-block_size=4       # in method transpose_blocks() defines the block size : ( 2^block_size x 2^block_size )
+N=12  # defines the matrix size : ( 2^N x 2^N )
 
+block_size=5  # in method transpose_blocks() defines the block size : ( 2^block_size x 2^block_size )
 
-./bin/homework-1 --method=$method --N=$N --block_size=$block_size
+th_size_x=3  # defines threadBlock shape ( 2^th_size_x x 2^th_size_y )
+th_size_y=5
+
+./bin/project-imageProcessing --method=$method --N=$N --block_size=$block_size --th_size_x=$th_size_x --th_size_y=$th_size_y
