@@ -28,7 +28,7 @@ void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, fl
                 }
             }
         }
-        output[thred_x*image_dim_x+thread_y] = (int) sum;
+        output[thread_x*image_dim_x+thread_y] = (int) sum;
     }
 }
 
