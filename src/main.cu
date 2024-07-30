@@ -108,7 +108,7 @@ int main(int argc, char * argv []){
     checkCuda( cudaMemset((void*)&dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMemcpy(dev_image, host_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyHostToDevice) );
     TIMER_START;
-    gpu_convolution<<<dimBlock, 1>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
+    gpu_convolution<<<1, dimBlock>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
     checkCuda( cudaDeviceSynchronize() );
     TIMER_STOP;
     checkCuda( cudaMemcpy(gpu_output, (void*)dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyDeviceToHost) );
