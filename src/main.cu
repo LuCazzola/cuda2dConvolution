@@ -116,7 +116,7 @@ int main(int argc, char * argv []){
     float error = 0.0;
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = y*IMAGE_DIM_Y+x;
+            int idx = x*IMAGE_DIM_X+y;
             error += (cpu_output[idx] - gpu_output[idx]) < 0 ? -(cpu_output[idx] - gpu_output[idx]) : (cpu_output[idx] - gpu_output[idx]) ;
         }
     }
@@ -125,8 +125,7 @@ int main(int argc, char * argv []){
     printf("\nImage\n");
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = y*IMAGE_DIM_Y+x;
-            printf("%2d ", host_image[idx]);
+            printf("%2d ", host_image[x*IMAGE_DIM_X+y]);
         }
         printf("\n");
     }
@@ -134,7 +133,7 @@ int main(int argc, char * argv []){
     printf("\nCPU Output\n");
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = y*IMAGE_DIM_Y+x;
+            int idx = x*IMAGE_DIM_X+y;
             printf("%2d ", cpu_output[idx]);
         }
         printf("\n");
@@ -143,7 +142,7 @@ int main(int argc, char * argv []){
     printf("\nGPU Output\n");
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = y*IMAGE_DIM_Y+x;
+            int idx = x*IMAGE_DIM_X+y;
             printf("%2d ", gpu_output[idx]);
         }
         printf("\n");
