@@ -2,17 +2,6 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
-#define IMAGE_DIM 5
-
-int* generate_image(int dim_x, int dim_y){
-    // Generate image for testing, use loaded image later
-    int* image = (int*) malloc(dim_x * dim_y * sizeof(int));
-    for(int i = 0; i < dim_x * dim_y; i++){
-        image[i] = rand() % 100;
-    }
-    return image;
-}
-
 __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
     if(K_dim % 2 == 0){
