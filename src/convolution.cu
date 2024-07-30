@@ -4,15 +4,17 @@
 
 #define IMAGE_DIM 5
 
-void generate_image(int dim, int* image){
+int* generate_image(int dim_x, int dim_y){
     // Generate image for testing, use loaded image later
-    for(int i = 0; i < dim * dim; i++){
+    int* image = (int*) malloc(dim_x * dim_y * sizeof(int));
+    for(int i = 0; i < dim_x * dim_y; i++){
         image[i] = rand() % 100;
     }
+    return image;
 }
 
 __global__
-void gpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output){
+void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
     if(K_dim % 2 == 0){
         perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
         exit(EXIT_FAILURE);
@@ -23,26 +25,26 @@ void gpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output
     float sum = 0.0;
     int K_center = K_dim / 2;
 
-    if(thread_x >= 0 && thread_x < image_dim && thread_y >= 0 && thread_y < image_dim){
+    if(thread_x >= 0 && thread_x < image_dim_x && thread_y >= 0 && thread_y < image_dim_y){
         sum = 0.0;
         for(int i = 0; i < K_dim; i++){
             for(int j = 0; j < K_dim; j++){
                 int patch_i = thread_x-K_center+i;
                 int patch_j = thread_y-K_center+j;
-                if(patch_i < 0 || patch_i >= image_dim || patch_j < 0 || patch_j >= image_dim){
+                if(patch_i < 0 || patch_i >= image_dim_x || patch_j < 0 || patch_j >= image_dim_y){
                     sum += 0;
                 }
                 else {
-                    sum += K[i*K_dim+j] * (float) image[patch_i*image_dim+patch_j];
+                    sum += K[i*K_dim+j] * (float) image[patch_i*image_dim_x+patch_j];
                 }
             }
         }
-        output[thred_x*image_dim+thread_y] = (int) sum;
+        output[thred_x*image_dim_x+thread_y] = (int) sum;
     }
 }
 
-void cpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output){
-    if(filter_dim % 2 == 0){
+void cpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
+    if(K_dim % 2 == 0){
         perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
         exit(EXIT_FAILURE);
     }
@@ -50,22 +52,22 @@ void cpu_convolution(int image_dim, int* image, int K_dim, float* K, int* output
     float sum = 0.0;
     int K_center = K_dim / 2;
 
-    for(int u = 0; u < image_dim; u++){
-        for(int v = 0; v < image_dim; v++){
+    for(int u = 0; u < image_dim_x; u++){
+        for(int v = 0; v < image_dim_y; v++){
             sum = 0.0;
             for(int i = 0; i < K_dim; i++){
                 for(int j = 0; j < K_dim; j++){
                     int patch_u = u-K_center+i;
                     int patch_v = v-K_center+j;
-                    if(patch_u < 0 || patch_u >= image_dim || patch_v < 0 || patch_v >= image_dim){
+                    if(patch_u < 0 || patch_u >= image_dim_x || patch_v < 0 || patch_v >= image_dim_y){
                         sum += 0;
                     }
                     else {
-                        sum += K[i*K_dim+j] * (float) image[patch_u*image_dim+patch_v];
+                        sum += K[i*K_dim+j] * (float) image[patch_u*image_dim_x+patch_v];
                     }
                 }
             }
-            output[u*image_dim+v] = (int) sum;
+            output[u*image_dim_x+v] = (int) sum;
         }
     }
 }
