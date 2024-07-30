@@ -38,6 +38,14 @@ void print_run_infos(char *method, const int N, const int block_size, const int 
     printf("\nREMINDER : in Cuda the dimensions are expressed in CARTESIAN coordinates !\n");
 }
 
+int* generate_image(int dim_x, int dim_y){
+    // Generate image for testing, use loaded image later
+    int* image = (int*) malloc(dim_x * dim_y * sizeof(int));
+    for(int i = 0; i < dim_x * dim_y; i++){
+        image[i] = rand() % 100;
+    }
+    return image;
+}
 
 int main(int argc, char * argv []){
 
@@ -63,26 +71,63 @@ int main(int argc, char * argv []){
     // ===================================== Memory Allocations =====================================
 
     // host matrix, device matrix, copy of host matrix pre-transposition
-    matrix h_mat, d_mat;
+    // matrix h_mat, d_mat;
 
-    h_mat = (matrix) malloc(ROWS*COLS*sizeof(matrix_element));  // Allocate matrix on Host
-    checkCuda( cudaMalloc((void **)&d_mat, ROWS*COLS*sizeof(matrix_element)) );  // Allocate space on the DEVICE global memory
-    checkCuda( cudaMemset(d_mat, 0, ROWS*COLS*sizeof(matrix_element)) );
+    // h_mat = (matrix) malloc(ROWS*COLS*sizeof(matrix_element));  // Allocate matrix on Host
+    // checkCuda( cudaMalloc((void **)&d_mat, ROWS*COLS*sizeof(matrix_element)) );  // Allocate space on the DEVICE global memory
+    // checkCuda( cudaMemset(d_mat, 0, ROWS*COLS*sizeof(matrix_element)) );
     
-    fill_matrix(h_mat, ROWS, COLS);  // fill the host matrix with random values
-	checkCuda( cudaMemcpy(d_mat, h_mat, ROWS*COLS*sizeof(matrix_element), cudaMemcpyHostToDevice) );  // Copy from Host to device
-
+    // fill_matrix(h_mat, ROWS, COLS);  // fill the host matrix with random values
+	// checkCuda( cudaMemcpy(d_mat, h_mat, ROWS*COLS*sizeof(matrix_element), cudaMemcpyHostToDevice) );  // Copy from Host to device
 
     // ===================================== RUN =====================================
     
-    
+    int IMAGE_DIM_X = 3;
+    int IMAGE_DIM_Y = 5;
 
+    int* host_image, dev_image;
+    int* gpu_output, dev_output, cpu_output;
 
+    host_image = generate_image(IMAGE_DIM_X, IMAGE_DIM_Y);
+    int K_dim = 3;
+    float K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
+
+    // Run serial convolution
+    gpu_output = (int*) malloc(IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int));
+    cpu_output = (int*) malloc(IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int));
+    cpu_convolution(IMAGE_DIM_X, IMAGE_DIM_Y, host_image, K_dim, K, cpu_output);
+
+    // Run parallel convolution
+    TIMER_DEF;
+    checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
+    checkCuda( cudaMalloc((void **)&dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
+    checkCuda( cudaMemset(dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
+    checkCuda( cudaMemcpy(dev_image, host_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyHostToDevice) );
+    TIMER_START;
+    gpu_convolution<<<15, 1>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
+    checkCuda( cudaDeviceSynchronize() );
+    TIMER_STOP;
+    checkCuda( cudaMemcpy(gpu_output, dev_output, size * size * sizeof(int), cudaMemcpyDeviceToHost) );
+
+    //Check for errors
+    float error = 0.0;
+    for(int y = 0; y < IMAGE_DIM_Y, y++){
+        for(int x = 0; x < IMAGE_DIM_X, x++){
+            idx = y*IMAGE_DIM_Y+x;
+            error += (cpu_output[idx] - gpu_output[idx]);
+        }
+    }
+    float time = TIMER_ELAPSED;
+    printf("Time: %.3f\n", time);
+    printf("Error: %.3f\n", error);
 
     // ===================================== FREE MEMORY =====================================
 
-    free(h_mat);  // on Host
-    checkCuda( cudaFree(d_mat) );  // on Device
+    free(host_image);  
+    free(cpu_output);  
+    free(gpu_output);
+    checkCuda( cudaFree(dev_image) ); 
+    checkCuda( cudaFree(dev_output) );
 
 	return 0;
 }
