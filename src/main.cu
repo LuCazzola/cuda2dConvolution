@@ -126,7 +126,7 @@ int main(int argc, char * argv []){
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
             int idx = y*IMAGE_DIM_Y+x;
-            printf("%2d", host_image[idx]);
+            printf("%2d ", host_image[idx]);
         }
         printf("\n");
     }
@@ -135,7 +135,7 @@ int main(int argc, char * argv []){
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
             int idx = y*IMAGE_DIM_Y+x;
-            printf("%2d", cpu_output[idx]);
+            printf("%2d ", cpu_output[idx]);
         }
         printf("\n");
     }
@@ -144,7 +144,7 @@ int main(int argc, char * argv []){
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
             int idx = y*IMAGE_DIM_Y+x;
-            printf("%2d", gpu_output[idx]);
+            printf("%2d ", gpu_output[idx]);
         }
         printf("\n");
     }
