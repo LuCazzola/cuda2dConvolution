@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "pngutils.h": "c",
+        "matrix.h": "c"
+    }
+}
