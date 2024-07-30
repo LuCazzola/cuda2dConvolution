@@ -4,11 +4,6 @@
 
 __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
-    if(K_dim % 2 == 0){
-        perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
-        exit(EXIT_FAILURE);
-    }
-
     int thread_x = blockIdx.x * blockDim.x + threadIdx.x;
     int thread_y = blockIdx.y * blockDim.y + threadIdx.y;
     float sum = 0.0;
