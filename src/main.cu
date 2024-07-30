@@ -102,12 +102,13 @@ int main(int argc, char * argv []){
 
     // Run parallel convolution
     TIMER_DEF;
+    dim3 dimBlock(TILE_DIM, TILE_DIM);
     checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMalloc((void **)&dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMemset((void*)&dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMemcpy(dev_image, host_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyHostToDevice) );
     TIMER_START;
-    gpu_convolution<<<15, 1>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
+    gpu_convolution<<<dimBlock, 1>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
     checkCuda( cudaDeviceSynchronize() );
     TIMER_STOP;
     checkCuda( cudaMemcpy(gpu_output, (void*)dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyDeviceToHost) );
