@@ -85,8 +85,11 @@ int main(int argc, char * argv []){
     int IMAGE_DIM_X = 3;
     int IMAGE_DIM_Y = 5;
 
-    int* host_image, dev_image;
-    int* gpu_output, dev_output, cpu_output;
+    int* host_image;
+    int* dev_image;
+    int* gpu_output;
+    int* dev_output;
+    int* cpu_output;
 
     host_image = generate_image(IMAGE_DIM_X, IMAGE_DIM_Y);
     int K_dim = 3;
@@ -101,18 +104,18 @@ int main(int argc, char * argv []){
     TIMER_DEF;
     checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMalloc((void **)&dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
-    checkCuda( cudaMemset(dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
+    checkCuda( cudaMemset((void*)&dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMemcpy(dev_image, host_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyHostToDevice) );
     TIMER_START;
     gpu_convolution<<<15, 1>>>(IMAGE_DIM_X, IMAGE_DIM_X, dev_image, K_dim, K, dev_output);
     checkCuda( cudaDeviceSynchronize() );
     TIMER_STOP;
-    checkCuda( cudaMemcpy(gpu_output, dev_output, size * size * sizeof(int), cudaMemcpyDeviceToHost) );
+    checkCuda( cudaMemcpy(gpu_output, (void*)dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyDeviceToHost) );
 
     //Check for errors
     float error = 0.0;
-    for(int y = 0; y < IMAGE_DIM_Y, y++){
-        for(int x = 0; x < IMAGE_DIM_X, x++){
+    for(int y = 0; y < IMAGE_DIM_Y; y++){
+        for(int x = 0; x < IMAGE_DIM_X; x++){
             idx = y*IMAGE_DIM_Y+x;
             error += (cpu_output[idx] - gpu_output[idx]);
         }
