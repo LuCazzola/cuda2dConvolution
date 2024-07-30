@@ -102,7 +102,7 @@ int main(int argc, char * argv []){
 
     // Run parallel convolution
     TIMER_DEF;
-    dim3 dimBlock(IMAGE_DIM_X, IMAGE_DIM_Y);
+    dim3 dimBlock(IMAGE_DIM_Y, IMAGE_DIM_X);
     checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMalloc((void **)&dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
     checkCuda( cudaMemset((void*)&dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
