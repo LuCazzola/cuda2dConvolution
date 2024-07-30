@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime.h>
+#include "headers/convolution.h"
 
 __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){

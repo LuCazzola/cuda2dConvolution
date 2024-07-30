@@ -116,7 +116,7 @@ int main(int argc, char * argv []){
     float error = 0.0;
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
-            idx = y*IMAGE_DIM_Y+x;
+            int idx = y*IMAGE_DIM_Y+x;
             error += (cpu_output[idx] - gpu_output[idx]);
         }
     }
