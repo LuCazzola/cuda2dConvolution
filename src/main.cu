@@ -117,10 +117,38 @@ int main(int argc, char * argv []){
     for(int y = 0; y < IMAGE_DIM_Y; y++){
         for(int x = 0; x < IMAGE_DIM_X; x++){
             int idx = y*IMAGE_DIM_Y+x;
-            error += (cpu_output[idx] - gpu_output[idx]);
+            error += (cpu_output[idx] - gpu_output[idx]) < 0 ? -(cpu_output[idx] - gpu_output[idx]) : (cpu_output[idx] - gpu_output[idx]) ;
         }
     }
     float time = TIMER_ELAPSED;
+
+    printf("\nImage\n");
+    for(int y = 0; y < IMAGE_DIM_Y; y++){
+        for(int x = 0; x < IMAGE_DIM_X; x++){
+            int idx = y*IMAGE_DIM_Y+x;
+            printf("%2d", host_image[idx]);
+        }
+        printf("\n");
+    }
+    
+    printf("\nCPU Output\n");
+    for(int y = 0; y < IMAGE_DIM_Y; y++){
+        for(int x = 0; x < IMAGE_DIM_X; x++){
+            int idx = y*IMAGE_DIM_Y+x;
+            printf("%2d", cpu_output[idx]);
+        }
+        printf("\n");
+    }
+
+    printf("\nGPU Output\n");
+    for(int y = 0; y < IMAGE_DIM_Y; y++){
+        for(int x = 0; x < IMAGE_DIM_X; x++){
+            int idx = y*IMAGE_DIM_Y+x;
+            printf("%2d", gpu_output[idx]);
+        }
+        printf("\n");
+    }
+
     printf("Time: %.3f\n", time);
     printf("Error: %.3f\n", error);
 
