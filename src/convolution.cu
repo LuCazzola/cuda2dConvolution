@@ -7,6 +7,7 @@ __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
     int thread_x = blockIdx.x * blockDim.x + threadIdx.x;
     int thread_y = blockIdx.y * blockDim.y + threadIdx.y;
+    
     float sum = 0.0;
     int K_center = K_dim / 2;
 
@@ -17,7 +18,7 @@ void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, fl
                 int patch_i = thread_x-K_center+i;
                 int patch_j = thread_y-K_center+j;
                 if(patch_i < 0 || patch_i >= image_dim_x || patch_j < 0 || patch_j >= image_dim_y){
-                    sum += 0;
+                    sum += 0.0;
                 }
                 else {
                     sum += K[i*K_dim+j] * (float) image[patch_i*image_dim_x+patch_j];
