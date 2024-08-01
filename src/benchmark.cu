@@ -3,8 +3,7 @@ extern "C" {
 	#include "headers/opt_parser.h"
 	#include "headers/matrix.h"
 }
-#include "headers/transpose_gpu.h"
-#include "headers/common_cuda.h"
+#include "headers/cudaUtils.h"
 
 // functions to compute metrics
 double mean(double X [], const int SIZE){
@@ -12,14 +11,14 @@ double mean(double X [], const int SIZE){
     for (int i = 0; i < SIZE; i++){
         sum += X[i];
     }
-    return (sum/SIZE);
+    return (sum / SIZE);
 }
 double stdev(double X [], double mean, const int SIZE){
     double sum = 0;
     for (int i = 0; i < SIZE; i++){
         sum += pow(X[i] - mean, 2);
     }
-    return sqrt(sum/SIZE);
+    return sqrt(sum / SIZE);
 }
 
 // NOTE : as this file's role is to only benchmark the kernels there's no need to initialize host matrix
@@ -28,18 +27,15 @@ int main(int argc, char * argv []){
 
     // ===================================== Parameters Setup =====================================
 
-    // options to set in "benchmark_gpu.sh" file
+    // options to set in "run_benchmark.sh" file
     char method [30];
     int min_powerof2, max_powerof2, iterations_per_config, block_size, th_size_x, th_size_y;
     // parse command line options
-    process_benchmark_gpu_options(argc, argv, method, &min_powerof2, &max_powerof2, &iterations_per_config, &block_size, &th_size_x, &th_size_y);
-
+    process_benchmark_args(argc, argv, method, &min_powerof2, &max_powerof2, &iterations_per_config, &th_size_x, &th_size_y);
+    
     // kernels Variables
-    const int BLK_SIZE = (int) pow(2, block_size);               // matrix block size (same concept as Tiles)
     const int THREAD_DIM_X = (int) pow(2, th_size_x);            // defines thread blockDim.x
     const int THREAD_DIM_Y = (int) pow(2, th_size_y);            // defines thread blockDim.y
-    int SIZE;
-    size_t sharedBlockSize;
     matrix d_mat, filler;
     
     // === BENCHMARK vars ===
@@ -57,17 +53,11 @@ int main(int argc, char * argv []){
     TIMER_DEF;
     // ===================================== PERFORM TEST transpose_blocks_gpu_coalesced() =====================================
 
-    if (strcmp(method, "blocks_coalesced") == 0 || strcmp(method, "all") == 0) {
-        printf("\nComputing statystics of : 'transpose_blocks_gpu_coalesced()' :");
+    if (strcmp(method, "naive_cpu") == 0 || strcmp(method, "all") == 0) {
+        printf("\nComputing statystics of : 'cpu_convolution()' :");
 
         for (int i = 0; i < num_configurations; i++){
             SIZE = (int)pow(2,i+min_powerof2);
-
-            // Wake up the GPU before executing the main kernel
-            dim3 gridSize((int)(SIZE / BLK_SIZE), (int)(SIZE / BLK_SIZE), 1);
-            dim3 blockSize(THREAD_DIM_X, THREAD_DIM_Y, 1);
-            warm_up_gpu <<<gridSize, blockSize >>>();  
-            checkCuda( cudaDeviceSynchronize() );
 
             printf("\n   matrix size : 2^%d x 2^%d", i+min_powerof2, i+min_powerof2);
             for (int j = 0; j < iterations_per_config + warmup_runs; j++){

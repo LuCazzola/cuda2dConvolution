@@ -9,12 +9,13 @@ typedef struct {
     unsigned int W;        // image width in pixels
     unsigned int H;        // image height in pixels
     unsigned int C;        // number of channels
+    unsigned int PAD;      // padding
     png_byte color_type;   // Color type information
-    matrix val;            // values of the image
+    float* val;            // values of the image
 } PngImage;
 
 // allocate memory for a 'PngImage' struct object 
-PngImage* make_img(png_structp png_ptr, png_infop info_ptr);
+PngImage* make_img(png_structp png_ptr, png_infop info_ptr, int padding);
 // free memory for a 'PngImage' struct object 
 void del_img(PngImage* image);
 
@@ -22,7 +23,7 @@ void del_img(PngImage* image);
 unsigned int get_num_channels(png_byte color_type);
 
 // outputs a 'PngImage' object according to the specified '.png' file content
-PngImage* read_png(char *file_name);
+PngImage* read_png(char *file_name, int padding);
 // saves a .png file according to the specified 'PngImage' object
 void write_png(char *file_name, PngImage *img);
 

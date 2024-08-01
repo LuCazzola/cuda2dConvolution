@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "pngutils.h": "c",
-        "matrix.h": "c"
+        "matrix.h": "c",
+        "getopt.h": "c"
     }
 }
