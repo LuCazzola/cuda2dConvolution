@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 #include "headers/convolution.h"
+#include "headers/pngUtils.h"
+#include "matrix.h"
 
 __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
@@ -29,31 +31,28 @@ void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, fl
     }
 }
 
-void cpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
+void cpu_convolution(PngImage* image, int K_dim, matrix K, matrix output){
     if(K_dim % 2 == 0){
         perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
         exit(EXIT_FAILURE);
     }
     
-    float sum = 0.0;
+    matrix_element sum = 0.0;
     int K_center = K_dim / 2;
 
-    for(int u = 0; u < image_dim_x; u++){
-        for(int v = 0; v < image_dim_y; v++){
+    for(int u = 0; u < image->W; u++){
+        for(int v = 0; v < image->H; v++){
             sum = 0.0;
             for(int i = 0; i < K_dim; i++){
                 for(int j = 0; j < K_dim; j++){
                     int patch_u = u-K_center+i;
                     int patch_v = v-K_center+j;
-                    if(patch_u < 0 || patch_u >= image_dim_x || patch_v < 0 || patch_v >= image_dim_y){
-                        sum += 0;
-                    }
-                    else {
-                        sum += K[i*K_dim+j] * (float) image[patch_u*image_dim_x+patch_v];
+                    if(patch_u >= 0 && patch_u < image->W && patch_v >= 0 && patch_v < image->H){
+                        sum += K[i*K_dim+j] * image->val[patch_u*image->W+patch_v];
                     }
                 }
             }
-            output[u*image_dim_x+v] = (int) sum;
+            output[u*image_dim_x+v] = sum;
         }
     }
 }

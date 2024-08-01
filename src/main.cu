@@ -4,6 +4,7 @@ extern "C" {
     #include "headers/opt_parser.h"
 }
 #include "headers/convolution.h"
+#include "headers/pngUtils.h"
 
 // set to true/false to enable/disable debugging outputs
 #define PRINT_MATRICES false
@@ -51,6 +52,7 @@ int main(int argc, char * argv []){
 
     // ===================================== Parameters Setup =====================================
 
+    /*
     // options to set in "launch.sh" file
     char method [30];
     int N, block_size, th_size_x, th_size_y;
@@ -66,19 +68,14 @@ int main(int argc, char * argv []){
     dim3 gridSize((int)(SIZE / BLK_SIZE), (int)(SIZE / BLK_SIZE), 1);
     // Thread block dimensions according to input
     dim3 blockSize(THREAD_DIM_X, THREAD_DIM_Y, 1);    
+    */
     
+    PngImage* image = read_png("images/lenna_gray.png");
+
+    printf("Size: %d x %d", image->H, image->W);
 
     // ===================================== Memory Allocations =====================================
 
-    // host matrix, device matrix, copy of host matrix pre-transposition
-    // matrix h_mat, d_mat;
-
-    // h_mat = (matrix) malloc(ROWS*COLS*sizeof(matrix_element));  // Allocate matrix on Host
-    // checkCuda( cudaMalloc((void **)&d_mat, ROWS*COLS*sizeof(matrix_element)) );  // Allocate space on the DEVICE global memory
-    // checkCuda( cudaMemset(d_mat, 0, ROWS*COLS*sizeof(matrix_element)) );
-    
-    // fill_matrix(h_mat, ROWS, COLS);  // fill the host matrix with random values
-	// checkCuda( cudaMemcpy(d_mat, h_mat, ROWS*COLS*sizeof(matrix_element), cudaMemcpyHostToDevice) );  // Copy from Host to device
 
     // ===================================== RUN =====================================
     
@@ -102,6 +99,7 @@ int main(int argc, char * argv []){
     cpu_convolution(IMAGE_DIM_X, IMAGE_DIM_Y, host_image, K_dim, K, cpu_output);
 
     // Run parallel convolution
+    /*
     TIMER_DEF;
     dim3 dimBlock(IMAGE_DIM_X, IMAGE_DIM_Y);
     checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
@@ -125,6 +123,7 @@ int main(int argc, char * argv []){
         }
     }
     float time = TIMER_ELAPSED;
+    */
 
     printf("\nImage\n");
     for(int y = 0; y < IMAGE_DIM_Y; y++){
