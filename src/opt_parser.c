@@ -21,7 +21,7 @@ void process_main_args (int argc, char *argv[], char* pngPath, int* kernel_size,
                 if (strcmp(long_options[option_index].name, "kernel_size") == 0) {
                     *kernel_size = (int) atoi(optarg);
                 } else if (strcmp(long_options[option_index].name, "pngPath") == 0){             
-                    strcpy(kernel_size, optarg);
+                    strcpy(pngPath, optarg);
                 } else if (strcmp(long_options[option_index].name, "custom_input") == 0) {
                     *custom_input = (bool) atoi(optarg);
                 } else if (strcmp(long_options[option_index].name, "custom_input_width") == 0) {

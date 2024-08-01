@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <cuda_runtime.h>
 #include "headers/convolution.h"
-#include "headers/pngUtils.h"
-#include "matrix.h"
 
 __global__
 void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output){
@@ -37,22 +32,25 @@ void cpu_convolution(PngImage* image, int K_dim, matrix K, matrix output){
         exit(EXIT_FAILURE);
     }
     
-    matrix_element sum = 0.0;
-    int K_center = K_dim / 2;
+    unsigned int u,v;               // image pixel indeces (on which conv. is currently computed)
+    unsigned int i,j;               // kernel indeces
+    unsigned int patch_u, patch_v;  // image pixel currently evaluated by kernel
 
-    for(int u = 0; u < image->W; u++){
-        for(int v = 0; v < image->H; v++){
+    matrix_element sum = 0.0;
+    unsigned int K_center = K_dim / 2;
+
+    for(u = image->PAD; u < (image->H + image->PAD); u++){
+        for(v = image->PAD; v < (image->W + image->PAD); v++){
             sum = 0.0;
-            for(int i = 0; i < K_dim; i++){
-                for(int j = 0; j < K_dim; j++){
-                    int patch_u = u-K_center+i;
-                    int patch_v = v-K_center+j;
-                    if(patch_u >= 0 && patch_u < image->W && patch_v >= 0 && patch_v < image->H){
-                        sum += K[i*K_dim+j] * image->val[patch_u*image->W+patch_v];
-                    }
+            for(i = 0; i < K_dim; i++){
+                for(j = 0; j < K_dim; j++){
+                    patch_u = u-K_center+i;
+                    patch_v = v-K_center+j;
+                    
+                    sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) +patch_v];
                 }
             }
-            output[u*image_dim_x+v] = sum;
+            output[u*image->W + v] = sum;
         }
     }
 }

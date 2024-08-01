@@ -53,7 +53,7 @@ PngImage* read_png(char *file_name, int padding) {
     for (unsigned int i = 0; i < img->H; i++) {
         for (unsigned int j = 0; j < img->W; j++) {
             for (unsigned int c = 0; c < img->C; c++) {
-                img->val[((i+img->PAD) * (img->W+2*img->PAD) * img->C) + ((j+img->PAD) * img->C) + c] = (matrix_element)row_pointers[i][(j * img->C) + c];
+                img->val[((i+img->PAD) * (img->W+ 2*img->PAD) * img->C) + ((j+img->PAD) * img->C) + c] = (matrix_element)row_pointers[i][(j * img->C) + c];
             }
         }
     }

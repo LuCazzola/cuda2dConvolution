@@ -2,9 +2,9 @@ extern "C" {
     #include "headers/matrix.h"
 	#include "headers/common.h"
     #include "headers/opt_parser.h"
+    #include "headers/pngUtils.h"
 }
 #include "headers/convolution.h"
-#include "headers/pngUtils.h"
 
 // set to true/false to enable/disable debugging outputs
 #define PRINT_MATRICES false
@@ -69,8 +69,9 @@ int main(int argc, char * argv []){
     // Thread block dimensions according to input
     dim3 blockSize(THREAD_DIM_X, THREAD_DIM_Y, 1);    
     */
-    
-    PngImage* image = read_png("images/lenna_gray.png");
+    int K_dim = 3;
+    int padding = K_dim/2;
+    PngImage* image = read_png("images/lenna_gray.png", padding);
 
     printf("Size: %d x %d", image->H, image->W);
 
@@ -90,12 +91,11 @@ int main(int argc, char * argv []){
     float *dev_K;
 
     host_image = generate_image(IMAGE_DIM_X, IMAGE_DIM_Y);
-    int K_dim = 3;
     float K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
 
     // Run serial convolution
-    gpu_output = (int*) malloc(IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int));
-    cpu_output = (int*) malloc(IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int));
+    //gpu_output = (matrix) malloc(sizeof(matrix_element) * IMAGE_DIM_X*IMAGE_DIM_Y);
+    cpu_output = (matrix) malloc(sizeof(matrix_element) * IMAGE_DIM_X*IMAGE_DIM_Y);
     cpu_convolution(IMAGE_DIM_X, IMAGE_DIM_Y, host_image, K_dim, K, cpu_output);
 
     // Run parallel convolution
@@ -152,7 +152,7 @@ int main(int argc, char * argv []){
     }
 
     printf("Time: %.3f\n", time);
-    printf("Error: %.3f\n", error);
+    //printf("Error: %.3f\n", error);
 
     // ===================================== FREE MEMORY =====================================
 
