@@ -37,7 +37,7 @@ void cpu_convolution(PngImage* image, int K_dim, matrix K, PngImage* output){
 
     for(u = image->PAD; u < (image->H + image->PAD); u++){
         for(v = image->PAD; v < (image->W + image->PAD); v++){
-	    for(c = 0; c < image->C; c++){
+	        for(c = 0; c < image->C; c++){
                 sum = 0.0;
                 for(i = 0; i < K_dim; i++){
                     for(j = 0; j < K_dim; j++){
@@ -47,7 +47,7 @@ void cpu_convolution(PngImage* image, int K_dim, matrix K, PngImage* output){
                         sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) * image->C +patch_v*image->C + c];
                     }   
                 }
-                output->val[u*image->W + v + c] = sum;
+                output->val[u*image->W*image->C + v*image->C + c] = sum;
             }
         }
      }
