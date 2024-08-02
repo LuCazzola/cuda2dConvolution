@@ -26,31 +26,29 @@ void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, fl
     }
 }
 
-void cpu_convolution(PngImage* image, int K_dim, matrix K, matrix output){
-    if(K_dim % 2 == 0){
-        perror("Method 'apply_convolution' takes only filters with odd dimensions. Got even dimension.");
-        exit(EXIT_FAILURE);
-    }
-    
+void cpu_convolution(PngImage* image, int K_dim, matrix K, PngImage* output){
     unsigned int u,v;               // image pixel indeces (on which conv. is currently computed)
     unsigned int i,j;               // kernel indeces
     unsigned int patch_u, patch_v;  // image pixel currently evaluated by kernel
-
+    unsigned int c;                 // channel index
+    
     matrix_element sum = 0.0;
     unsigned int K_center = K_dim / 2;
 
     for(u = image->PAD; u < (image->H + image->PAD); u++){
         for(v = image->PAD; v < (image->W + image->PAD); v++){
-            sum = 0.0;
-            for(i = 0; i < K_dim; i++){
-                for(j = 0; j < K_dim; j++){
-                    patch_u = u-K_center+i;
-                    patch_v = v-K_center+j;
+	    for(c = 0; c < image->C; c++){
+                sum = 0.0;
+                for(i = 0; i < K_dim; i++){
+                    for(j = 0; j < K_dim; j++){
+                        patch_u = u-K_center+i;
+                        patch_v = v-K_center+j;
                     
-                    sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) +patch_v];
+                        sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) * image->C +patch_v*image->C + c];
+                    }   
                 }
+                output->val[u*image->W + v + c] = sum;
             }
-            output[u*image->W + v] = sum;
         }
-    }
+     }
 }

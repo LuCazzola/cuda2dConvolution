@@ -52,51 +52,45 @@ int main(int argc, char * argv []){
 
     // ===================================== Parameters Setup =====================================
 
-    /*
-    // options to set in "launch.sh" file
-    char method [30];
-    int N, block_size, th_size_x, th_size_y;
-    // parse command line options
-    process_transpose_gpu_options(argc, argv, method, &N, &block_size, &th_size_x, &th_size_y);
-
-    const int ROWS = (int) pow(2, N), COLS = ROWS, SIZE = ROWS;  // number of elements in a matrix ROW or COLUMN (SIZE)
-    const int BLK_SIZE = (int) pow(2, block_size);               // matrix block size (same concept as Tiles)
-    const int THREAD_DIM_X = (int) pow(2, th_size_x);            // defines thread blockDim.x
-    const int THREAD_DIM_Y = (int) pow(2, th_size_y);            // defines thread blockDim.y
-     
-    // Grid dimension is assumed to be large such that it covers the entire input matrix
-    dim3 gridSize((int)(SIZE / BLK_SIZE), (int)(SIZE / BLK_SIZE), 1);
-    // Thread block dimensions according to input
-    dim3 blockSize(THREAD_DIM_X, THREAD_DIM_Y, 1);    
-    */
     int K_dim = 3;
+    float K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
+   
     int padding = K_dim/2;
-    PngImage* image = read_png("images/lenna_gray.png", padding);
+    PngImage* image = read_png("images/lenna.png", padding);
 
-    printf("Size: %d x %d", image->H, image->W);
-
+    printf("Size: %d x %d x %d\n", image->C, image->H, image->W);
+    printf("Padding: %d\n", image->PAD);
+    
     // ===================================== Memory Allocations =====================================
 
+    PngImage* cpu_output_image = (PngImage*) malloc(sizeof(PngImage));
+    cpu_output_image->PAD = 0;
+    cpu_output_image->W = image->W;
+    cpu_output_image->H = image->H;
+    cpu_output_image->C = image->C;
+    cpu_output_image->color_type = image->color_type;
+    cpu_output_image->val = (matrix) malloc(sizeof(matrix_element)*image->W*image->H*image->C);
 
     // ===================================== RUN =====================================
     
-    int IMAGE_DIM_X = 3;
-    int IMAGE_DIM_Y = 5;
+    TIMER_DEF;
+    TIMER_START;
+    cpu_convolution(image, K_dim, K, cpu_output_image);
+    TIMER_STOP;
 
+    printf("Time: %.2f\n", TIMER_ELAPSED);
+    write_png("images/output.png", cpu_output_image);    
+    return 0;
+    
     int* host_image;
     int* dev_image;
     int* gpu_output;
     int* dev_output;
-    int* cpu_output;
     float *dev_K;
-
-    host_image = generate_image(IMAGE_DIM_X, IMAGE_DIM_Y);
-    float K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
 
     // Run serial convolution
     //gpu_output = (matrix) malloc(sizeof(matrix_element) * IMAGE_DIM_X*IMAGE_DIM_Y);
-    cpu_output = (matrix) malloc(sizeof(matrix_element) * IMAGE_DIM_X*IMAGE_DIM_Y);
-    cpu_convolution(IMAGE_DIM_X, IMAGE_DIM_Y, host_image, K_dim, K, cpu_output);
+    //cpu_convolution(image, K_dim, K, cpu_output);
 
     // Run parallel convolution
     /*
@@ -125,42 +119,13 @@ int main(int argc, char * argv []){
     float time = TIMER_ELAPSED;
     */
 
-    printf("\nImage\n");
-    for(int y = 0; y < IMAGE_DIM_Y; y++){
-        for(int x = 0; x < IMAGE_DIM_X; x++){
-            printf("%2d ", host_image[x*IMAGE_DIM_X+y]);
-        }
-        printf("\n");
-    }
-    
-    printf("\nCPU Output\n");
-    for(int y = 0; y < IMAGE_DIM_Y; y++){
-        for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = x*IMAGE_DIM_X+y;
-            printf("%2d ", cpu_output[idx]);
-        }
-        printf("\n");
-    }
-
-    printf("\nGPU Output\n");
-    for(int y = 0; y < IMAGE_DIM_Y; y++){
-        for(int x = 0; x < IMAGE_DIM_X; x++){
-            int idx = x*IMAGE_DIM_X+y;
-            printf("%2d ", gpu_output[idx]);
-        }
-        printf("\n");
-    }
-
-    printf("Time: %.3f\n", time);
-    //printf("Error: %.3f\n", error);
-
     // ===================================== FREE MEMORY =====================================
 
     free(host_image);  
-    free(cpu_output);  
+    free(cpu_output_image);  
     free(gpu_output);
     checkCuda( cudaFree(dev_image) ); 
     checkCuda( cudaFree(dev_output) );
-
-	return 0;
+    
+    return 0;
 }
