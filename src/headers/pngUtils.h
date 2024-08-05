@@ -6,10 +6,10 @@
 #include <png.h> // requires loading "module load libpng/1.6.39-GCCcore-12.3.0" on Marzola cluster
 
 typedef struct {
-    unsigned int W;        // image width in pixels
-    unsigned int H;        // image height in pixels
-    unsigned int C;        // number of channels
-    unsigned int PAD;      // padding
+    int W;        // image width in pixels
+    int H;        // image height in pixels
+    int C;        // number of channels
+    int PAD;      // padding
     png_byte color_type;   // Color type information
     float* val;            // values of the image
 } PngImage;
