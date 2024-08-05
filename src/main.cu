@@ -53,7 +53,7 @@ int main(int argc, char * argv []){
     // ===================================== Parameters Setup =====================================
 
     int K_dim = 3;
-    float K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
+    matrix_element K[] = {1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0};
    
     int padding = K_dim/2;
     PngImage* image = read_png("images/lenna.png", padding);
@@ -78,35 +78,48 @@ int main(int argc, char * argv []){
     cpu_convolution(image, K_dim, K, cpu_output_image);
     TIMER_STOP;
 
-    printf("Time: %.2f\n", TIMER_ELAPSED);
-    write_png("images/output.png", cpu_output_image);    
-    return 0;
+    printf("CPU Time: %.2f\n", TIMER_ELAPSED);
+    write_png("images/cpu_output.png", cpu_output_image);    
     
-    int* host_image;
-    int* dev_image;
-    int* gpu_output;
-    int* dev_output;
-    float *dev_K;
-
-    // Run serial convolution
-    //gpu_output = (matrix) malloc(sizeof(matrix_element) * IMAGE_DIM_X*IMAGE_DIM_Y);
-    //cpu_convolution(image, K_dim, K, cpu_output);
-
+    PngImage* dev_image;
+    PngImage* gpu_output;
+    PngImage* dev_output;
+    matrix dev_K;
+    
     // Run parallel convolution
-    /*
-    TIMER_DEF;
-    dim3 dimBlock(IMAGE_DIM_X, IMAGE_DIM_Y);
-    checkCuda( cudaMalloc((void **)&dev_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
-    checkCuda( cudaMalloc((void **)&dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
-    checkCuda( cudaMalloc((void **)&dev_K, K_dim*K_dim*sizeof(float)) );
-    checkCuda( cudaMemset((void*)&dev_output, 0, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int)) );
-    checkCuda( cudaMemcpy(dev_image, host_image, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyHostToDevice) );
-    checkCuda( cudaMemcpy(dev_K, K, K_dim*K_dim*sizeof(float), cudaMemcpyHostToDevice) );
+    dim3 dimBlock(image->W+2*image->PAD, image->H+2*image->PAD);
+    
+    // Move kernel to GPU
+    checkCuda( cudaMalloc((void **)&dev_K, K_dim*K_dim*sizeof(matrix_element)) );
+    checkCuda( cudaMemcpy(dev_K, K, K_dim*K_dim*sizeof(matrix_element), cudaMemcpyHostToDevice) );
+    
+    // Move input image to GPU
+    checkCuda( cudaMalloc((void **)&dev_image, sizeof(PngImage) ));
+    checkCuda( cudaMemset((void*)&dev_image->W, image->W, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&dev_image->H, image->H, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&dev_image->C, image->C, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&dev_image->PAD, image->PAD, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&dev_image->color_type, image->color_type, sizeof(png_byte)) );
+
+    checkCuda( cudaMalloc((void **)&dev_image->val, (image->W+2*image->PAD)*(image->H+2*image->PAD)*sizeof(matrix_element)) );
+    checkCuda( cudaMemcpy(dev_image, image, (image->W+2*image->PAD)*(image->H+2*image->PAD)*sizeof(matrix_element), cudaMemcpyHostToDevice) );
+
+    // Move output buffer to GPU
+    checkCuda( cudaMalloc((void **)&gpu_output, sizeof(PngImage) ));
+    checkCuda( cudaMemset((void*)&gpu_output->W, image->W, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&gpu_output->H, image->H, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&gpu_output->C, image->C, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&gpu_output->PAD, image->PAD, sizeof(unsigned int)) );
+    checkCuda( cudaMemset((void*)&gpu_output->color_type, image->color_type, sizeof(png_byte)) );
+
+    //TODO: prepare host output buffer (=dev_output)
+    checkCuda( cudaMalloc((void **)&dev_output, sizeof(PngImage) ));
+
     TIMER_START;
-    gpu_convolution<<<1, dimBlock>>>(IMAGE_DIM_X, IMAGE_DIM_Y, dev_image, K_dim, dev_K, dev_output);
+    gpu_convolution<<<1, dimBlock>>>(image, K_dim, dev_K, dev_output);
     checkCuda( cudaDeviceSynchronize() );
     TIMER_STOP;
-    checkCuda( cudaMemcpy(gpu_output, (void*)dev_output, IMAGE_DIM_X*IMAGE_DIM_Y*sizeof(int), cudaMemcpyDeviceToHost) );
+    checkCuda( cudaMemcpy(gpu_output, (void*)dev_output, sizeof(PngImage), cudaMemcpyDeviceToHost) );
 
     //Check for errors
     float error = 0.0;
@@ -117,7 +130,6 @@ int main(int argc, char * argv []){
         }
     }
     float time = TIMER_ELAPSED;
-    */
 
     // ===================================== FREE MEMORY =====================================
 
