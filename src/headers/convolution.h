@@ -8,7 +8,7 @@
 #include "cudaUtils.h"
 #include "convolution.h"
 
-__global__ void gpu_convolution(int image_dim_x, int image_dim_y, int* image, int K_dim, float* K, int* output);
-void cpu_convolution(PngImage* image, int K_dim, matrix K, PngImage* output);
+__global__ void gpu_convolution_naive(PngImage* image, int K_dim, matrix K, PngImage* output);
+void cpu_convolution_naive(PngImage* image, int K_dim, matrix K, PngImage* output);
 
 #endif
