@@ -83,7 +83,7 @@ int main(int argc, char * argv []){
     write_png("images/cpu_output.png", cpu_output_image);    
     
     PngImage* dev_image;
-    float* dev_image_data;
+    float* dev_image_val;
 
     PngImage* gpu_output;
     PngImage* dev_output;
@@ -104,12 +104,9 @@ int main(int argc, char * argv []){
     checkCuda( cudaMemset((void*)&dev_image->PAD, image->PAD, sizeof(unsigned int)) );
     checkCuda( cudaMemset((void*)&dev_image->color_type, image->color_type, sizeof(png_byte)) );
 
-    checkCuda( cudaMalloc((void**)&dev_image_data, (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element)));
-    checkCuda( cudaMemcpy(dev_image_data, image->val, (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element), cudaMemcpyHostToDevice ));
-    checkCuda( cudaMemcpy(&(dev_image->val), &dev_image_data, sizeof(float*), cudaMemcpyHostToDevice)  );
-    /*
-    checkCuda( cudaMalloc((void **)&(dev_image->val), (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element)) );
-    checkCuda( cudaMemcpy(dev_image->val, image->val, (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element), cudaMemcpyHostToDevice) );
+    checkCuda( cudaMalloc((void**)&dev_image_val, (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element)));
+    checkCuda( cudaMemcpy(dev_image_val, image->val, (image->W+2*image->PAD)*(image->H+2*image->PAD)*image->C*sizeof(matrix_element), cudaMemcpyHostToDevice ));
+    checkCuda( cudaMemcpy(&(dev_image->val), &dev_image_val, sizeof(float*), cudaMemcpyHostToDevice)  );
     
     // Move output buffer to GPU
     checkCuda( cudaMalloc((void **)&gpu_output, sizeof(PngImage) ));
