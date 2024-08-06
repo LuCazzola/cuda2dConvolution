@@ -89,3 +89,24 @@ void gpu_convolution_naive(matrix image, matrix K, matrix output, const int W, c
         }
     }
 }
+
+__global__ 
+void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int PAD, const int K_DIM) {
+    int u = blockIdx.x*blockDim.x + threadIdx.x; // image pixel (u) (on which conv. is currently computed)
+    int v = blockIdx.y*blockDim.y + threadIdx.y; // image pixel (v) (on which conv. is currently computed)
+
+    /*
+        Move image patch into shared memory
+    */
+    __shared__ matrix_element shared_image[(blockDim.x + 2*PAD) * (blockDim.y + 2*PAD) * C];
+
+    for(int c = 0; c < C; c++){
+        shared_image[(threadIdx.x*blockDim.x)*C + threadIdx.y*C + c] = image[u*(W + 2*PAD)*C + v*C + c];
+    }
+
+   __syncthreads();
+
+   /*
+        Compute convolution
+    */
+}
