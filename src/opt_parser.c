@@ -1,11 +1,14 @@
 #include "headers/opt_parser.h"
 
-void process_main_args (int argc, char *argv[], char* method, char* pngPath, int* kernel_size){
+void process_main_args (int argc, char *argv[], char* method, char* input_png_path, char* output_png_path, int* kernel_size, int* th_size_x, int* th_size_y){
     // Long options structure
     static struct option long_options[] = {
         {"method", optional_argument, 0, 0},
-        {"pngPath", optional_argument, 0, 0},
+        {"input_png_path", optional_argument, 0, 0},
+        {"output_png_path", optional_argument, 0, 0},
         {"kernel_size", required_argument, 0, 0},
+        {"th_size_x", required_argument, 0, 0},
+        {"th_size_y", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -26,8 +29,14 @@ void process_main_args (int argc, char *argv[], char* method, char* pngPath, int
                 }
                 else if (strcmp(long_options[option_index].name, "kernel_size") == 0) {
                     *kernel_size = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "pngPath") == 0){             
-                    strcpy(pngPath, optarg);
+                } else if (strcmp(long_options[option_index].name, "input_png_path") == 0){             
+                    strcpy(input_png_path, optarg);
+                } else if (strcmp(long_options[option_index].name, "output_png_path") == 0){             
+                    strcpy(output_png_path, optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_x") == 0){             
+                    *th_size_x = (int) atoi(optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_y") == 0){             
+                    *th_size_y = (int) atoi(optarg);
                 }
                 break;
             default:
@@ -35,10 +44,15 @@ void process_main_args (int argc, char *argv[], char* method, char* pngPath, int
                 exit(EXIT_FAILURE);
         }
     }
+
+    if (*th_size_x + *th_size_y >= 11) {
+        fprintf(stderr, "===\nERROR: 'th_size_x' + 'th_size_y' must be < 11 (Cuda allows max 1024 threads per block)\n===\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 
-void process_benchmark_args(int argc, char *argv[], char *method, int* min_powerof2, int* max_powerof2, int* min_kernel_size, int* max_kernel_size, int* iterations_per_config) {
+void process_benchmark_args(int argc, char *argv[], char *method, int* min_powerof2, int* max_powerof2, int* min_kernel_size, int* max_kernel_size, int* iterations_per_config, int* th_size_x, int* th_size_y) {
     // Long options structure
     static struct option long_options[] = {
         {"method", required_argument, 0, 0},
@@ -47,6 +61,8 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
         {"min_kernel_size", required_argument, 0, 0},
         {"max_kernel_size", required_argument, 0, 0},
         {"iterations_per_config", required_argument, 0, 0},
+        {"th_size_x", required_argument, 0, 0},
+        {"th_size_y", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -74,6 +90,10 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
                     }        
                 } else if (strcmp(long_options[option_index].name, "iterations_per_config") == 0) {
                     *iterations_per_config = (int) atoi(optarg);
+                }  else if (strcmp(long_options[option_index].name, "th_size_x") == 0){             
+                    *th_size_x = (int) atoi(optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_y") == 0){             
+                    *th_size_y = (int) atoi(optarg);
                 }
                 break;
 
@@ -89,6 +109,10 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
     }
     if(*min_kernel_size > *max_kernel_size){
         fprintf(stderr, "===\nERROR: 'min_kernel_size' must < than 'max_kernel_size'\n===\n");
+        exit(EXIT_FAILURE);
+    }
+    if (*th_size_x + *th_size_y >= 11) {
+        fprintf(stderr, "===\nERROR: 'th_size_x' + 'th_size_y' must be < 11 (Cuda allows max 1024 threads per block)\n===\n");
         exit(EXIT_FAILURE);
     }
 }

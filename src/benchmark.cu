@@ -94,9 +94,9 @@ int main(int argc, char * argv []){
 
     // options to set in "run_benchmark.sh" file
     char method [30];
-    int min_powerof2, max_powerof2, min_kernel_size, max_kernel_size, iterations_per_config;
+    int min_powerof2, max_powerof2, min_kernel_size, max_kernel_size, iterations_per_config, TH_SIZE_X, TH_SIZE_Y;
     // parse command line options
-    process_benchmark_args(argc, argv, method, &min_powerof2, &max_powerof2, &min_kernel_size, &max_kernel_size, &iterations_per_config);
+    process_benchmark_args(argc, argv, method, &min_powerof2, &max_powerof2, &min_kernel_size, &max_kernel_size, &iterations_per_config, &TH_SIZE_X, &TH_SIZE_Y);
         
     // === BENCHMARK vars ===
 
@@ -110,20 +110,23 @@ int main(int argc, char * argv []){
     double*** effective_bandwidth = init_3d_vec(num_kernel_configurations, num_size_configurations, iterations_per_config); // keep track of measured effective bandwidths
     double*** flops = init_3d_vec(num_kernel_configurations, num_size_configurations, iterations_per_config);               // keep track of measured flops
 
-    // other varaibles
-    PngImage* img = (PngImage*) malloc(sizeof(PngImage));   // input png image (randomly initialized during bench.)
-    PngImage* out = (PngImage*) malloc(sizeof(PngImage));   // output png image
+    // fake images
+    matrix h_in_img, h_out_img, h_k;
+    matrix d_in_img, d_out_img, d_k, filler;
 
-    matrix K;             // kernel filter
     int K_SIZE;           // kernel size (assumed to be squared), K_SIZE = 3 means the kernel is (3x3)
     int TOT_SIZE;         // total size of an image (including padding)
     int TOT_SIZE_NOPAD;   // total size of an image (excluded padding)
-    
+    int TOT_K_SIZE;
+    int W, H, C, PAD;
+
     long int Br_Bw;            // Bytes-read Bytes-wrote done
     long int Flo;              // Float in point operations done
 
-    int RANDFILL_TILE = (int)pow(2, 4);        // tile for rand_fill() kernel
-    
+    int BLOCK_X, BLOCK_Y;
+    TH_SIZE_X = (int) pow(2, TH_SIZE_X);
+    TH_SIZE_Y = (int) pow(2, TH_SIZE_Y);
+
     /*
         ================================================================================================================
         ===================================== PERFORM TEST CPU_convolution_naive() =====================================
@@ -138,39 +141,39 @@ int main(int argc, char * argv []){
         for (k = 0; k < num_kernel_configurations; k++){
             // setup kernel
             K_SIZE = min_kernel_size + 2*k;
+            TOT_K_SIZE = K_SIZE*K_SIZE;
             printf("\n   kernel size : %d x %d", K_SIZE, K_SIZE);
             
             // setup fake .png for benchmark
-            img->C = out->C = 3;     // in benchmark, number of channels is kept fixed = 3
-            img->PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
-            out->PAD = 0;
+            C = 3;                 // in benchmark, number of channels is kept fixed = 3
+            PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
 
             for (i = 0; i < num_size_configurations; i++){
 
                 // set size parameters
-                img->W = out->W = (int)pow(2,i+min_powerof2);
-                img->H = out->H = img->W;
-                TOT_SIZE = (img->W + 2*img->PAD)*(img->H + 2*img->PAD)*img->C;
-                TOT_SIZE_NOPAD = img->W * img->H * img->C;
-                printf("\n   matrix size : [2^%d x 2^%d] + %d padding ", i+min_powerof2, i+min_powerof2, img->PAD);
+                W = (int)pow(2,i+min_powerof2);
+                H = W;
+                TOT_SIZE = (W + 2*PAD)*(H + 2*PAD)*C;
+                TOT_SIZE_NOPAD = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d] + %d pad ", W, H, C, PAD);
 
                 // define metrics
-                Br_Bw = sizeof(matrix_element) * ((TOT_SIZE_NOPAD * (K_SIZE*K_SIZE)*(K_SIZE*K_SIZE)*img->C) + TOT_SIZE_NOPAD);
-                Flo = TOT_SIZE_NOPAD * (K_SIZE*K_SIZE) * 2;
+                Br_Bw = get_conv_bytes_read_write(W, H, C, PAD, K_SIZE);
+                Flo = get_conv_flops(W, H, C, PAD, K_SIZE);
 
                 for (j = 0; j < (iterations_per_config+warmup_runs); j++){
 
                     // allocate mem.
-                    img->val = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);         // input image (including padding)
-                    out->val = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE_NOPAD);   // output image (which has no padding)
-                    K = (matrix) malloc(sizeof(float) * K_SIZE*K_SIZE);                    // kernel filter
+                    h_in_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);         // input image (including padding)
+                    h_out_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE_NOPAD);   // output image (which has no padding)
+                    h_k = (matrix) malloc(sizeof(float) * TOT_K_SIZE);                    // kernel filter
                     // fill with random values
-                    fill_matrix_random(img->val, TOT_SIZE);
-                    fill_matrix_random(K, K_SIZE*K_SIZE);
+                    fill_matrix_random(h_in_img, TOT_SIZE);
+                    fill_matrix_random(h_k, TOT_K_SIZE);
 
                     // ---- START ----
                     TIMER_START;
-                    cpu_convolution_naive(img, K_SIZE, K, out);
+                    cpu_convolution_naive(h_in_img, h_k, h_out_img, W, H, C, PAD, K_SIZE);
                     TIMER_STOP;
                     // ----- END -----
 
@@ -181,9 +184,9 @@ int main(int argc, char * argv []){
                         flops[k][i][j-warmup_runs] = (Flo / pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
                     }
                     // free host matrices
-                    free(img->val);
-                    free(out->val);
-                    free(K);
+                    free(h_in_img);
+                    free(h_out_img);
+                    free(h_k);
                 }
             }
             printf("\n");
@@ -201,45 +204,48 @@ int main(int argc, char * argv []){
         ================================================================================================================
     */
 
-    // kernels Variables
-    matrix d_mat, d_kernel, filler;
-
     if (strcmp(method, "gpu_naive") == 0 || strcmp(method, "all") == 0){
         printf("\nComputing statystics for : 'gpu_convolution_naive()' :");
         
         for (k = 0; k < num_kernel_configurations; k++){
             // setup kernel
-            // setup kernel
             K_SIZE = min_kernel_size + 2*k;
+            TOT_K_SIZE = K_SIZE*K_SIZE;
             printf("\n   kernel size : %d x %d", K_SIZE, K_SIZE);
             
             // setup fake .png for benchmark
-            img->C = out->C = 3;     // in benchmark, number of channels is kept fixed = 3
-            img->PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
-            out->PAD = 0;
+            C = 3;     // in benchmark, number of channels is kept fixed = 3
+            PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
             
             for (i = 0; i < num_size_configurations; i++){
                 // set size parameters
-                img->W = out->W = (int)pow(2,i+min_powerof2);
-                img->H = out->H = img->W;
-                TOT_SIZE = (img->W + 2*img->PAD)*(img->H + 2*img->PAD)*img->C;
-                TOT_SIZE_NOPAD = img->W * img->H * img->C;
-                printf("\n   matrix size : [2^%d x 2^%d] + %d padding ", i+min_powerof2, i+min_powerof2, img->PAD);
+                W = (int)pow(2, i+min_powerof2);
+                H = W;
+                TOT_SIZE = (W + 2*PAD)*(H + 2*PAD)*C;
+                TOT_SIZE_NOPAD = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d] + %d pad ", W, H, C, PAD);
 
                 // define metrics
-                Br_Bw = sizeof(matrix_element) * ((TOT_SIZE_NOPAD * (K_SIZE*K_SIZE)*(K_SIZE*K_SIZE)*img->C) + TOT_SIZE_NOPAD);
-                Flo = TOT_SIZE_NOPAD * (K_SIZE*K_SIZE) * 2;
+                Br_Bw = get_conv_bytes_read_write(W, H, C, PAD, K_SIZE);
+                Flo = get_conv_flops(W, H, C, PAD, K_SIZE);
+
+                BLOCK_X = (int) ((W + 2*PAD) + 1) / TH_SIZE_X; 
+                BLOCK_Y = (int) ((H + 2*PAD) + 1) / TH_SIZE_Y;
+                dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+                dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
 
                 for (j = 0; j < iterations_per_config + warmup_runs; j++){
                     // Allocate space on the DEVICE global memory (both for image and kernel)
-                    checkCuda( cudaMalloc((void **)&d_mat, TOT_SIZE * sizeof(matrix_element)) );
-                    checkCuda( cudaMalloc((void **)&d_kernel, K_SIZE*K_SIZE * sizeof(matrix_element)) );
-                    checkCuda( cudaMemset(d_mat, 0, TOT_SIZE * sizeof(matrix_element)) );
-                    checkCuda( cudaMemset(d_kernel, 0, K_SIZE*K_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_k, TOT_K_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_k, 0, TOT_K_SIZE * sizeof(matrix_element)) );
 
                     // Fill the matrix with random values
-                    gpu_fill_rand(d_mat, TOT_SIZE);
-                    gpu_fill_rand(d_kernel, K_SIZE*K_SIZE);
+                    gpu_fill_rand(d_in_img, TOT_SIZE);
+                    gpu_fill_rand(d_k, TOT_K_SIZE);
 
                     // allocate a filler block as large as the L2 cache and access it
                     // that's used to basically flush the L2 cache from previous accesses
@@ -249,8 +255,8 @@ int main(int argc, char * argv []){
 
                     // ---- START ----
                     TIMER_START;
-                    // -> PUT KERNEL THERE
-                    // checkCuda( cudaDeviceSynchronize() );
+                    gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_img, d_k, d_out_img, W, H, C, PAD, K_SIZE);
+                    checkCuda( cudaDeviceSynchronize() );
                     TIMER_STOP;
                     // ----- END -----
 
@@ -262,8 +268,9 @@ int main(int argc, char * argv []){
                     }
 
                     /// Free memory
-                    checkCuda( cudaFree(d_mat) );
-                    checkCuda( cudaFree(d_kernel) );
+                    checkCuda( cudaFree(d_in_img) );
+                    checkCuda( cudaFree(d_out_img) );
+                    checkCuda( cudaFree(d_k) );
                 }
             }
             printf("\n");
@@ -271,12 +278,10 @@ int main(int argc, char * argv []){
 
         // Write results on a .csv file
         char output_filename[100] = "";  // filename buffer
-        sprintf(output_filename,"data/GPU-conv-naive_%d-to-%d-kernel_%d-to-%d-size_%d-iter.csv", min_kernel_size, max_kernel_size, min_powerof2, max_powerof2, iterations_per_config);
+        sprintf(output_filename,"data/GPU-conv-naive_%d-to-%d-kernel_%d-to-%d-size_%d-by-%d-th-per-block_%d-iter.csv", min_kernel_size, max_kernel_size, min_powerof2, max_powerof2, TH_SIZE_X, TH_SIZE_Y, iterations_per_config);
         print_csv(output_filename, exec_time, effective_bandwidth, flops, num_kernel_configurations, num_size_configurations, iterations_per_config, min_kernel_size, max_kernel_size, min_powerof2);
     }
 
-    free(img);
-    free(out);
     del_3d_vec(exec_time, num_kernel_configurations, num_size_configurations, iterations_per_config);
     del_3d_vec(effective_bandwidth, num_kernel_configurations, num_size_configurations, iterations_per_config);
     del_3d_vec(flops, num_kernel_configurations, num_size_configurations, iterations_per_config);

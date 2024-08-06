@@ -31,7 +31,8 @@
 
 ### User Variables ###
 
-method="gpu_naive"   # chose which version of convolution operation to run :
+method="all"   # chose which version of convolution operation to run :
+                     #   method="all" : run ALL METHODS
                      #   method="cpu_naive" : run cpu_convolution_naive() 
                      #   method="gpu_naive" : run gpu_convolution_naive() 
 
@@ -43,5 +44,7 @@ max_powerof2=10           # size of the LAST tested matrix : ( 2^max_powerof2 x 
 
 iterations_per_config=10 # number of times each configuration of parameters is repeated executed
 
+th_size_x=4           # thread block size in the x direction (as a power of 2 => 2^th_size_x)
+th_size_y=4           # thread block size in the y direction (as a power of 2 => 2^th_size_y)
 
-./bin/benchmark  --method=$method --min_kernel_size=$min_kernel_size --max_kernel_size=$max_kernel_size --min_powerof2=$min_powerof2 --max_powerof2=$max_powerof2 --iterations_per_config=$iterations_per_config
+./bin/benchmark  --method=$method --min_kernel_size=$min_kernel_size --max_kernel_size=$max_kernel_size --min_powerof2=$min_powerof2 --max_powerof2=$max_powerof2 --iterations_per_config=$iterations_per_config --th_size_x=$th_size_x --th_size_y=$th_size_y

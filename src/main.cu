@@ -10,33 +10,35 @@ extern "C" {
 #define PRINT_MATRICES false
 #define PRINT_MAT_ERROR false
 
-void print_metrics (double exec_time, const int SIZE){
+void print_metrics (double exec_time, const int W, const int H, const int C, const int PAD, const int K_DIM){
     // metrics evaluation
     printf("\n\n========================== METRICS ==========================\n");
 
-    // each element in the matrix (except the diagonal) is
-    // subject to one read and one write operation
-    // total reads + writes = 2 * size^2 (expressed in bytes)
-    double Br_Bw = sizeof(matrix_element) * (SIZE * SIZE) * 2;
+    long int Br_Bw = get_conv_bytes_read_write(W, H, C, PAD, K_DIM);
+    long int Flo = get_conv_flops(W, H, C, PAD, K_DIM);
 
     // effective bandwidth (expressed in GB/s)
-    double effective_bandwidth = ( Br_Bw / pow(10,9) ) / exec_time;
+    double effective_bandwidth = (Br_Bw / pow(10,9)) / (exec_time + 1e-8);
+    // flops (expressed in TFLOP/s)
+    double flops = (Flo / pow(10,12)) / (exec_time + 1e-8); 
 
     // print out values
-    printf("\nExecution time :       %f s\n", exec_time);
-    printf("\nEffective Bandwidth :  %f GB/s\n\n", effective_bandwidth);
+    printf("\nExecution time      :  %f s", exec_time);
+    printf("\nEffective Bandwidth :  %f GB/s", effective_bandwidth);
+    printf("\nFLOPS               :  %f TFLOP/s\n", flops);
+    printf("\n");
 }
 
 
-void print_run_infos(char *method, const int N, const int block_size, const int th_size_x, const int th_size_y){
-    printf("\n-   Matrix elemets datatype : %s\n", VALUE(MATRIX_ELEM_DTYPE));
-    printf("-   Matrix size       :       2^%d x 2^%d\n", N, N);
-    printf("-   Matrix block size :       2^%d x 2^%d\n\n", block_size, block_size);
+void print_run_infos(char *method, const int W, const int H, const int C, const int K_DIM, const int th_size_x, const int th_size_y){
+    printf("\n========================== RUN INFO ==========================\n");
+
+    printf("\n-   datatype        : %s\n", VALUE(MATRIX_ELEM_DTYPE));
+    printf("-   png size        : (%d x %d x %d)\n\n", W, H, C);
     
-    printf("Method: %s on GPU\n", method);
-    printf("-   Grid  dim :                2^%d x 2^%d\n", N-block_size, N-block_size);
-    printf("-   Block dim :               2^%d x 2^%d\n", th_size_x, th_size_y);
-    printf("\nREMINDER : in Cuda the dimensions are expressed in CARTESIAN coordinates !\n");
+    printf("-   Method:         : %s()\n", method);
+    printf("-   kernel filter   : (%d x %d)\n", K_DIM, K_DIM);
+    printf("-   Block dim       : (%d x %d)\n", th_size_x, th_size_y);
 }
 
 int* generate_image(int dim_x, int dim_y){
@@ -51,17 +53,22 @@ int* generate_image(int dim_x, int dim_y){
 int main(int argc, char * argv []){
 
     // ===================================== Parameters Setup =====================================
-    int K_DIM = 0;
-    char pngPath [50];
+    int K_DIM, TH_SIZE_X, TH_SIZE_Y;
+    K_DIM = TH_SIZE_X = TH_SIZE_Y = 0;
+    char input_png_path [50];
+    char output_png_path [50];
     char method [50];
-    process_main_args (argc, argv, method, pngPath, &K_DIM);
-    
+
+    process_main_args (argc, argv, method, input_png_path, output_png_path, &K_DIM, &TH_SIZE_X, &TH_SIZE_Y);
+
     // get input image
-    PngImage* input_image = read_png(pngPath, (int)(K_DIM/2));
-    
+    PngImage* input_image = read_png(input_png_path, (int)(K_DIM/2));
+
     const int TOT_SIZE = (input_image->W + 2*input_image->PAD) * (input_image->H + 2*input_image->PAD) * input_image->C;
     const int TOT_SIZE_NOPAD = input_image->W * input_image->H * input_image->C;
     const int TOT_K_DIM = K_DIM*K_DIM; 
+    TH_SIZE_X = (int) pow(2, TH_SIZE_X);
+    TH_SIZE_Y = (int) pow(2, TH_SIZE_Y);
 
     // struct on which to store the output image once it's computed
     PngImage* output_image = (PngImage*) malloc(sizeof(PngImage));
@@ -71,6 +78,9 @@ int main(int argc, char * argv []){
     output_image->C = input_image->C;
     output_image->color_type = input_image->color_type;
     output_image->val = (matrix) malloc(sizeof(matrix_element)* TOT_SIZE_NOPAD);
+
+    // Show run infos
+    print_run_infos(method, input_image->W, input_image->H, input_image->C, K_DIM, TH_SIZE_X, TH_SIZE_Y);
 
     // ===================================== Memory Allocations =====================================
 
@@ -99,6 +109,12 @@ int main(int argc, char * argv []){
     checkCuda( cudaMalloc(&d_out_image, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
     checkCuda( cudaMemset(d_out_image, 0, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
 
+    // "Wake up" the GPU before executing the kernels
+    dim3 blockSizeWarmup(512, 1, 1);
+    dim3 gridSizeWarmup(256, 1, 1);
+    warm_up_gpu<<<gridSizeWarmup, blockSizeWarmup>>> ();
+    checkCuda( cudaDeviceSynchronize() );
+
     // ===================================== RUN =====================================
     TIMER_DEF;
 
@@ -108,10 +124,10 @@ int main(int argc, char * argv []){
         TIMER_STOP;
     }
     else if (strcmp(method, "gpu_naive") == 0){
-        int th_size_x = 16;
-        int th_size_y = 16;
-        dim3 numBlocks((input_image->W - K_DIM + 1) / th_size_x, (input_image->H - K_DIM + 1) / th_size_y, 1);
-        dim3 dimBlocks(th_size_x, th_size_y, 1);
+        const int BLOCK_X = (int) ((input_image->W + 2*input_image->PAD) + 1) / TH_SIZE_X; 
+        const int BLOCK_Y = (int) ((input_image->H + 2*input_image->PAD) + 1) / TH_SIZE_Y;
+        dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+        dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
 
         TIMER_START;
         gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_image, d_K, d_out_image, input_image->W, input_image->H, input_image->C, input_image->PAD, K_DIM);
@@ -119,28 +135,15 @@ int main(int argc, char * argv []){
         TIMER_STOP;
         checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE_NOPAD*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
     }
-    // Print first 10 elements to stderr
-    for (int i = 0; i < 10; i++) {
-        fprintf(stderr, "%f ", h_out_image[i]);
-    }
-    fprintf(stderr, "\n");
-
-    //Check for errors
-    /*
-    float error = 0.0;
-    for(int y = 0; y < input_image->H; y++){
-        for(int x = 0; x < input_image->W; x++){
-            int idx = x*IMAGE_DIM_X + y;
-            error += (h_out_image[idx] - gpu_output[idx]) < 0 ? -(h_out_image[idx] - gpu_output[idx]) : (h_out_image[idx] - gpu_output[idx]) ;
-        }
-    }
-    float time = TIMER_ELAPSED;
-    */
 
     // ===================================== SHOW RESULTS =====================================
+    
+    // print metrics
+    print_metrics (TIMER_ELAPSED, output_image->W, output_image->H, output_image->C, output_image->PAD, K_DIM);
+    // save output image
     memcpy(output_image->val, h_out_image, sizeof(matrix_element) * TOT_SIZE_NOPAD);
-    write_png("images/output.png", output_image);    
-
+    write_png(output_png_path, output_image);
+    
     // ===================================== FREE MEMORY =====================================
 
     // structs
@@ -154,6 +157,7 @@ int main(int argc, char * argv []){
     checkCuda( cudaFree(d_in_image) ); 
     checkCuda( cudaFree(d_out_image) );
     checkCuda( cudaFree(d_K) );
+    fprintf(stderr, "F\n");
     
     return 0;
 }
