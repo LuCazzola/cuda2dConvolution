@@ -1,14 +1,14 @@
 #include "headers/opt_parser.h"
 
-void process_main_args (int argc, char *argv[], char* pngPath, int* kernel_size, bool* custom_input, int* custom_input_width, int* custom_input_height, int* custom_input_channels) {
+void process_main_args (int argc, char *argv[], char* method, char* input_png_path, char* output_png_path, int* kernel_size, int* th_size_x, int* th_size_y){
     // Long options structure
     static struct option long_options[] = {
+        {"method", optional_argument, 0, 0},
+        {"input_png_path", optional_argument, 0, 0},
+        {"output_png_path", optional_argument, 0, 0},
         {"kernel_size", required_argument, 0, 0},
-        {"pngPath", optional_argument, 0, 0},
-        {"custom_input", optional_argument, 0, 0},
-        {"custom_input_width", optional_argument, 0, 0},
-        {"custom_input_height", optional_argument, 0, 0},
-        {"custom_input_channels", optional_argument, 0, 0},
+        {"th_size_x", required_argument, 0, 0},
+        {"th_size_y", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
@@ -18,20 +18,26 @@ void process_main_args (int argc, char *argv[], char* pngPath, int* kernel_size,
     while ((c = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
         switch (c) {
             case 0: // Long option found
-                if (strcmp(long_options[option_index].name, "kernel_size") == 0) {
-                    *kernel_size = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "pngPath") == 0){             
-                    strcpy(pngPath, optarg);
-                } else if (strcmp(long_options[option_index].name, "custom_input") == 0) {
-                    *custom_input = (bool) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "custom_input_width") == 0) {
-                    *custom_input_width = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "custom_input_height") == 0) {
-                    *custom_input_height = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "custom_input_channels") == 0) {
-                    *custom_input_channels = (int) atoi(optarg);
+                if (strcmp(long_options[option_index].name, "method") == 0) {
+                    if(strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0){
+                        strcpy(method, optarg);
+                    }
+                    else{
+                        fprintf(stderr, "Unsupported 'method' value\n");
+                        exit(EXIT_FAILURE);
+                    }
                 }
-
+                else if (strcmp(long_options[option_index].name, "kernel_size") == 0) {
+                    *kernel_size = (int) atoi(optarg);
+                } else if (strcmp(long_options[option_index].name, "input_png_path") == 0){             
+                    strcpy(input_png_path, optarg);
+                } else if (strcmp(long_options[option_index].name, "output_png_path") == 0){             
+                    strcpy(output_png_path, optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_x") == 0){             
+                    *th_size_x = (int) atoi(optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_y") == 0){             
+                    *th_size_y = (int) atoi(optarg);
+                }
                 break;
             default:
                 fprintf(stderr, "Unknown option\n");
@@ -39,18 +45,21 @@ void process_main_args (int argc, char *argv[], char* pngPath, int* kernel_size,
         }
     }
 
-    if (*custom_input){
-        fprintf(stderr, "custom input enabled, input image path will be ignored\n");
+    if (*th_size_x + *th_size_y >= 11) {
+        fprintf(stderr, "===\nERROR: 'th_size_x' + 'th_size_y' must be < 11 (Cuda allows max 1024 threads per block)\n===\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 
-void process_benchmark_args(int argc, char *argv[], char *method, int* min_powerof2, int* max_powerof2, int* iterations_per_config, int* th_size_x, int* th_size_y) {
+void process_benchmark_args(int argc, char *argv[], char *method, int* min_powerof2, int* max_powerof2, int* min_kernel_size, int* max_kernel_size, int* iterations_per_config, int* th_size_x, int* th_size_y) {
     // Long options structure
     static struct option long_options[] = {
         {"method", required_argument, 0, 0},
         {"min_powerof2", required_argument, 0, 0},
         {"max_powerof2", required_argument, 0, 0},
+        {"min_kernel_size", required_argument, 0, 0},
+        {"max_kernel_size", required_argument, 0, 0},
         {"iterations_per_config", required_argument, 0, 0},
         {"th_size_x", required_argument, 0, 0},
         {"th_size_y", required_argument, 0, 0},
@@ -65,22 +74,26 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
             case 0: // Long option found
                 if (strcmp(long_options[option_index].name, "min_powerof2") == 0) {
                     *min_powerof2 = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "method") == 0){
-                    if (strcmp(optarg, "blocks_naive") == 0 || strcmp(optarg, "blocks_coalesced") == 0 || strcmp(optarg, "all") == 0){
+                } else if (strcmp(long_options[option_index].name, "max_powerof2") == 0) {
+                    *max_powerof2 = (int) atoi(optarg);
+                }  else if (strcmp(long_options[option_index].name, "min_kernel_size") == 0){
+                    *min_kernel_size = (int) atoi(optarg);
+                }else if (strcmp(long_options[option_index].name, "max_kernel_size") == 0){
+                    *max_kernel_size = (int) atoi(optarg);
+                }else if (strcmp(long_options[option_index].name, "method") == 0){
+                    if (strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "all") == 0){
                         strcpy(method, optarg);
                     }
                     else{
                         fprintf(stderr, "Unsupported 'method' value\n");
                         exit(EXIT_FAILURE);
                     }        
-                } else if (strcmp(long_options[option_index].name, "max_powerof2") == 0) {
-                    *max_powerof2 = (int) atoi(optarg);
                 } else if (strcmp(long_options[option_index].name, "iterations_per_config") == 0) {
                     *iterations_per_config = (int) atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "th_size_x") == 0) {
-                    *th_size_x = (int)atoi(optarg);
-                } else if (strcmp(long_options[option_index].name, "th_size_y") == 0) {
-                    *th_size_y = (int)atoi(optarg);
+                }  else if (strcmp(long_options[option_index].name, "th_size_x") == 0){             
+                    *th_size_x = (int) atoi(optarg);
+                } else if (strcmp(long_options[option_index].name, "th_size_y") == 0){             
+                    *th_size_y = (int) atoi(optarg);
                 }
                 break;
 
@@ -90,8 +103,16 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
         }
     }
 
-    if (*th_size_x + *th_size_y > 11){
-        fprintf(stderr, "===\nERROR: unpredictable behaviour\ntotal number of threads per block can't exceed 1024\nplease set 'th_size_x' + 'th_size_y' <= 11\n===\n");
+    if (*min_kernel_size < 1 || *max_kernel_size < 1 || *min_kernel_size % 2 == 0 || *max_kernel_size % 2 == 0 ){
+        fprintf(stderr, "===\nERROR: max/min Kernel sizes must be positive and odd\n===\n");
+        exit(EXIT_FAILURE);
+    }
+    if(*min_kernel_size > *max_kernel_size){
+        fprintf(stderr, "===\nERROR: 'min_kernel_size' must < than 'max_kernel_size'\n===\n");
+        exit(EXIT_FAILURE);
+    }
+    if (*th_size_x + *th_size_y >= 11) {
+        fprintf(stderr, "===\nERROR: 'th_size_x' + 'th_size_y' must be < 11 (Cuda allows max 1024 threads per block)\n===\n");
         exit(EXIT_FAILURE);
     }
 }

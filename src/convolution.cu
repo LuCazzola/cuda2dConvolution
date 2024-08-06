@@ -1,58 +1,91 @@
 #include "headers/convolution.h"
 
-__global__
-void gpu_convolution_naive(PngImage* image, int K_dim, matrix K, PngImage* output){
+// set kernel as average kernel
+void fill_mean_kernel (matrix K, const int K_DIM){
+    matrix_element mean = 1.0 / (K_DIM * K_DIM);
 
-    unsigned int thread_u, thread_v; // image pixel indeces (on which conv. is currently computed)
-    unsigned int i,j;                // kernel indeces
-    unsigned int patch_u, patch_v;  // image pixel currently evaluated by kernel
-    unsigned int c;                  // channel index
-
-    thread_u = blockIdx.x * blockDim.x + threadIdx.x;
-    thread_v = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    matrix_element sum = 0.0;
-    unsigned int K_center = K_dim / 2;
-
-    if(thread_u >= image->PAD && thread_u < image->W+image->PAD && thread_v >= image->PAD && thread_v < image->H+image->PAD){
-        sum = 0.0;
-        for(i = 0; i < K_dim; i++){
-            for(j = 0; j < K_dim; j++){
-                for(c = 0; c < image->C; c++){
-                    patch_u = thread_u-K_center+i;
-                    patch_v = thread_v-K_center+j;
-
-                    sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) * image->C +patch_v*image->C + c];
-                }
-            }
+    for(int i = 0; i < K_DIM; i++){
+        for(int j = 0; j < K_DIM; j++){
+            K[i*K_DIM + j] = mean;
         }
-        output->val[thread_u*image->W*image->C + thread_v*image->C + c] = sum;
     }
 }
-
-void cpu_convolution_naive(PngImage* image, int K_dim, matrix K, PngImage* output){
-    unsigned int u,v;               // image pixel indeces (on which conv. is currently computed)
-    unsigned int i,j;               // kernel indeces
-    unsigned int patch_u, patch_v;  // image pixel currently evaluated by kernel
-    unsigned int c;                 // channel index
+// Get the number of bytes read and written by the convolution kernel
+long int get_conv_bytes_read_write(const int W, const int H, const int C, const int PAD, const int K_DIM){
+    const int TOT_SIZE_NOPAD = W * H * C; 
+    const int TOT_K_DIM = K_DIM*K_DIM;
     
-    matrix_element sum = 0.0;
-    unsigned int K_center = K_dim / 2;
+    const long int BR = sizeof(matrix_element) * ((TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD); 
+    const long int BW = sizeof(matrix_element) * TOT_SIZE_NOPAD;
 
-    for(u = image->PAD; u < (image->H + image->PAD); u++){
-        for(v = image->PAD; v < (image->W + image->PAD); v++){
-	        for(c = 0; c < image->C; c++){
+    return BR + BW;
+}
+// Get the number of FLOPs performed by the convolution kernel
+long int get_conv_flops(const int W, const int H, const int C, const int PAD, const int K_DIM){
+    const int TOT_SIZE_NOPAD = W * H * C; 
+    const int TOT_K_DIM = K_DIM*K_DIM;
+    
+    const long int FLOP = (TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD;
+
+    return FLOP;
+}
+
+
+// ================================================================================================================================= //
+// ================================================== CONVOLUTION IMPLEMENTATIONS ================================================== //
+// ================================================================================================================================= //
+
+
+void cpu_convolution_naive(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int PAD, const int K_DIM){
+    int u,v;               // image pixel indeces (on which conv. is currently computed)
+    int i,j;               // kernel indeces
+    int patch_u, patch_v;  // image pixel currently evaluated by kernel
+    int c;                 // channel index
+    const int K_CENTER = (int)(K_DIM / 2);
+    matrix_element sum;
+
+    for(u = PAD; u < (H + PAD); u++){
+        for(v = PAD; v < (W + PAD); v++){
+	        for(c = 0; c < C; c++){
                 sum = 0.0;
-                for(i = 0; i < K_dim; i++){
-                    for(j = 0; j < K_dim; j++){
-                        patch_u = u-K_center+i;
-                        patch_v = v-K_center+j;
+                for(i = 0; i < K_DIM; i++){
+                    for(j = 0; j < K_DIM; j++){
+                        patch_u = u - K_CENTER + i;
+                        patch_v = v - K_CENTER + j;
                     
-                        sum += K[i*K_dim+j] * image->val[patch_u * (image->W + 2*image->PAD) * image->C +patch_v*image->C + c];
+                        sum += K[i*K_DIM + j] * image[patch_u*(W + 2*PAD)*C + patch_v*C + c];
                     }   
                 }
-                output->val[u*image->W*image->C + v*image->C + c] = sum;
+                output[(u-PAD)*W*C + (v-PAD)*C + c] = sum;
             }
         }
      }
+}
+
+
+__global__
+void gpu_convolution_naive(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int PAD, const int K_DIM){
+    int u = blockIdx.x*blockDim.x + threadIdx.x; // image pixel (u) (on which conv. is currently computed)
+    int v = blockIdx.y*blockDim.y + threadIdx.y; // image pixel (v) (on which conv. is currently computed)
+    
+    if(u >= PAD && v >= PAD && u < W+PAD && v < H+PAD){
+        int i,j;                // kernel indeces
+        int patch_u, patch_v;   // image pixel currently evaluated by kernel
+        int c;                  // channel index
+        const int K_CENTER = (int)(K_DIM / 2);
+        matrix_element sum;
+
+        for(c = 0; c < C; c++){
+            sum = 0.0;
+            for(i = 0; i < K_DIM; i++){
+                for(j = 0; j < K_DIM; j++){
+                        patch_u = u - K_CENTER + i;
+                        patch_v = v - K_CENTER + j;
+
+                        sum += K[i*K_DIM + j] * image[patch_u*(W + 2*PAD)*C + patch_v*C + c];
+                    }
+                }
+            output[(u-PAD)*W*C + (v-PAD)*C + c] = sum;
+        }
+    }
 }

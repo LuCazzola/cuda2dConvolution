@@ -2,7 +2,7 @@
 
 ### Options to run the test on the Marzola cluster ###
 
-#SBATCH --job-name=parallelImageProcessing
+#SBATCH --job-name=main_imgProcessing
 #SBATCH --output=output.out
 #SBATCH --error=error.err
 
@@ -20,16 +20,17 @@
 # ...
 
 ### User Variables ###
+method="gpu_naive"          # method to use for image processing, available methods :
+                            # - cpu_naive
+                            # - gpu_naive
 
-method="blocks_naive"   # chose which version of transpose to run between "transpose_blocks_gpu()" and "transpose_blocks_gpu_coalesced()" by setting :
-                        #   method="blocks_naive" : run transpose_blocks_gpu() 
-                        #   method="blocks_coalesced" : run transpose_blocks_gpu_coalesced()
+input_png_path="images/lenna.png"   # path to the image to process
+output_png_path="images/out.png"    # path to the output image
 
-N=12  # defines the matrix size : ( 2^N x 2^N )
+kernel_size=3           # kernel filter size : ( kernel_size x kernel_size )
+                        # - MUST BE ODD NUMBER
 
-block_size=5  # in method transpose_blocks() defines the block size : ( 2^block_size x 2^block_size )
+th_size_x=4           # thread block size in the x direction (as a power of 2 => 2^th_size_x)
+th_size_y=4           # thread block size in the y direction (as a power of 2 => 2^th_size_y)
 
-th_size_x=3  # defines threadBlock shape ( 2^th_size_x x 2^th_size_y )
-th_size_y=5
-
-./bin/project-imageProcessing --method=$method --N=$N --block_size=$block_size --th_size_x=$th_size_x --th_size_y=$th_size_y
+./bin/project-imageProcessing --method=$method --input_png_path=$input_png_path --output_png_path=$output_png_path --kernel_size=$kernel_size --th_size_x=$th_size_x --th_size_y=$th_size_y

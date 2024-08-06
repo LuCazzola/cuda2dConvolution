@@ -18,7 +18,7 @@ GCC_FLAGS := -std=c11 -Wall
 NVCC_FLAGS := -Xcompiler -Wall -lm
 # dynamic libraries
 ADDITIONAL_LIBS_C := -lm -lpng
-ADDITIONAL_LIBS_CU := -lcurand
+ADDITIONAL_LIBS_CU := -lcurand -lcudart
 # reference to headers
 INCLUDE := -I$(SOURCEDIR)/headers
 

@@ -40,6 +40,10 @@ unsigned int get_num_channels(png_byte color_type) {
 // outputs a 'PngImage' object according to the specified '.png' file content
 PngImage* read_png(char *file_name, int padding) {
     FILE *fp = fopen(file_name, "rb");
+    if (!fp) {
+        perror("Failed to open file for reading");
+        exit(EXIT_FAILURE);
+    }
 
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info_ptr = png_create_info_struct(png_ptr);
