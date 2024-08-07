@@ -180,8 +180,8 @@ int main(int argc, char * argv []){
                     // begin storing values only after "warmup_runs" are done
                     if (j >= warmup_runs){
                         exec_time[k][i][j-warmup_runs] = TIMER_ELAPSED;                                                             // seconds
-                        effective_bandwidth[k][i][j-warmup_runs] = (Br_Bw / pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
-                        flops[k][i][j-warmup_runs] = (Flo / pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
+                        effective_bandwidth[k][i][j-warmup_runs] = ((double)Br_Bw / (double)pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
+                        flops[k][i][j-warmup_runs] = ((double)Flo / (double)pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
                     }
                     // free host matrices
                     free(h_in_img);
@@ -239,6 +239,7 @@ int main(int argc, char * argv []){
                     checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
                     checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
                     checkCuda( cudaMalloc((void **)&d_k, TOT_K_SIZE * sizeof(matrix_element)) );
+
                     checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
                     checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
                     checkCuda( cudaMemset(d_k, 0, TOT_K_SIZE * sizeof(matrix_element)) );
@@ -263,8 +264,8 @@ int main(int argc, char * argv []){
                     // begin storing values only after "warmup_runs" are done
                     if (j >= warmup_runs){
                         exec_time[k][i][j-warmup_runs] = TIMER_ELAPSED;                                                             // seconds
-                        effective_bandwidth[k][i][j-warmup_runs] = (Br_Bw / pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
-                        flops[k][i][j-warmup_runs] = (Flo / pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
+                        effective_bandwidth[k][i][j-warmup_runs] = ((double)Br_Bw / (double)pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
+                        flops[k][i][j-warmup_runs] = ((double)Flo / (double)pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
                     }
 
                     /// Free memory

@@ -19,9 +19,9 @@ void print_metrics (double exec_time, const int W, const int H, const int C, con
     long int Flo = get_conv_flops(W, H, C, PAD, K_DIM);
 
     // effective bandwidth (expressed in GB/s)
-    double effective_bandwidth = (Br_Bw / pow(10,9)) / (exec_time + 1e-8);
+    double effective_bandwidth = ((double)Br_Bw / (double)pow(10,9)) / (exec_time + 1e-8);
     // flops (expressed in TFLOP/s)
-    double flops = (Flo / pow(10,12)) / (exec_time + 1e-8); 
+    double flops = ((double)Flo / (double)pow(10,12)) / (exec_time + 1e-8); 
 
     // print out values
     printf("\nExecution time      :  %f s", exec_time);
@@ -158,7 +158,6 @@ int main(int argc, char * argv []){
     checkCuda( cudaFree(d_in_image) ); 
     checkCuda( cudaFree(d_out_image) );
     checkCuda( cudaFree(d_K) );
-    fprintf(stderr, "F\n");
     
     return 0;
 }
