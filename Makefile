@@ -49,7 +49,7 @@ all: $(TARGETDIR)/$(BUILDNAME)
 
 benchmark: $(TARGETDIR)/$(BUILDBENCH)
 
-debug: GCC_FLAGS += -DDEBUG -g
+debug: GCC_FLAGS += -DDEBUG -g -gdwarf-2
 debug: NVCC_FLAGS += -DDEBUG -G
 debug: all
 debug: benchmark
