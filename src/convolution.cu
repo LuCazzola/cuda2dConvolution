@@ -95,20 +95,13 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
     int u = blockIdx.x*blockDim.x + threadIdx.x; // image pixel (u) (on which conv. is currently computed)
     int v = blockIdx.y*blockDim.y + threadIdx.y; // image pixel (v) (on which conv. is currently computed)
 
-    /*
-        Move image patch into shared memory
-    */
-    __shared__ matrix_element shared_image[(blockDim.x + 2*PAD) * (blockDim.y + 2*PAD) * C];
+    extern __shared__ matrix_element shared_image[];
 
     for(int c = 0; c < C; c++){
         shared_image[(threadIdx.x*blockDim.x)*C + threadIdx.y*C + c] = image[u*(W + 2*PAD)*C + v*C + c]; //Maybe remove padding
     }
 
    __syncthreads();
-
-   /*
-        Compute convolution
-    */
 
     if(u >= PAD && v >= PAD && u < W+PAD && v < H+PAD){
         int i,j;                // kernel indeces
@@ -121,10 +114,7 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
             sum = 0.0;
             for(i = 0; i < K_DIM; i++){
                 for(j = 0; j < K_DIM; j++){
-                        patch_u = threadId.x - K_CENTER + i;
-                        patch_v = threadId.x - K_CENTER + j;
-
-                        sum += K[i*K_DIM + j] * shared_image[patch_u*(W + 2*PAD)*C + patch_v*C + c];
+                        sum += K[i*K_DIM + j] * shared_image[(threadIdx.x - K_CENTER + i)*(blockDim.x + 2*PAD)*C + (threadIdx.y - K_CENTER + j)*C + c];
                     }
                 }
             output[(u-PAD)*W*C + (v-PAD)*C + c] = sum;
