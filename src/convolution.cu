@@ -12,20 +12,20 @@ void fill_mean_kernel (matrix K, const int K_DIM){
 }
 // Get the number of bytes read and written by the convolution kernel
 long int get_conv_bytes_read_write(const int W, const int H, const int C, const int PAD, const int K_DIM){
-    const int TOT_SIZE_NOPAD = W * H * C; 
-    const int TOT_K_DIM = K_DIM*K_DIM;
+    long int TOT_SIZE_NOPAD = W * H * C; 
+    long int TOT_K_DIM = K_DIM*K_DIM;
     
-    const long int BR = sizeof(matrix_element) * ((TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD); 
-    const long int BW = sizeof(matrix_element) * TOT_SIZE_NOPAD;
+    long int BR = sizeof(matrix_element) * ((TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD); 
+    long int BW = sizeof(matrix_element) * TOT_SIZE_NOPAD;
 
     return BR + BW;
 }
 // Get the number of FLOPs performed by the convolution kernel
 long int get_conv_flops(const int W, const int H, const int C, const int PAD, const int K_DIM){
-    const int TOT_SIZE_NOPAD = W * H * C; 
-    const int TOT_K_DIM = K_DIM*K_DIM;
+    long int TOT_SIZE_NOPAD = W * H * C; 
+    long int TOT_K_DIM = K_DIM*K_DIM;
     
-    const long int FLOP = (TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD;
+    long int FLOP = (TOT_K_DIM + TOT_K_DIM) * TOT_SIZE_NOPAD;
 
     return FLOP;
 }
