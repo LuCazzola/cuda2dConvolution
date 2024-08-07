@@ -19,7 +19,7 @@ void process_main_args (int argc, char *argv[], char* method, char* input_png_pa
         switch (c) {
             case 0: // Long option found
                 if (strcmp(long_options[option_index].name, "method") == 0) {
-                    if(strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0){
+                    if(strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "gpu_shared") == 0){
                         strcpy(method, optarg);
                     }
                     else{

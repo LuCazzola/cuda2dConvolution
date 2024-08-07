@@ -35,6 +35,7 @@ method="all"   # chose which version of convolution operation to run :
                      #   method="all" : run ALL METHODS
                      #   method="cpu_naive" : run cpu_convolution_naive() 
                      #   method="gpu_naive" : run gpu_convolution_naive() 
+                     #   method="gpu_shared" : run gpu_convolution_shared() 
 
 min_kernel_size=3     # size of the FIRST kernel matrix : ( min_kernel_size x min_kernel_size )
 max_kernel_size=7     # size of the LAST kernel matrix  : ( max_kernel_size x max_kernel_size )

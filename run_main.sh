@@ -20,9 +20,10 @@
 # ...
 
 ### User Variables ###
-method="gpu_naive"          # method to use for image processing, available methods :
+method="gpu_shared"          # method to use for image processing, available methods :
                             # - cpu_naive
                             # - gpu_naive
+                            # - gpu_shared
 
 input_png_path="images/lenna.png"   # path to the image to process
 output_png_path="images/out.png"    # path to the output image
