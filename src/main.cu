@@ -6,10 +6,6 @@ extern "C" {
 }
 #include "headers/convolution.h"
 
-// set to true/false to enable/disable debugging outputs
-#define PRINT_MATRICES false
-#define PRINT_MAT_ERROR false
-#define DEBUG
 
 void print_metrics (double exec_time, const int W, const int H, const int C, const int PAD, const int K_DIM){
     // metrics evaluation
