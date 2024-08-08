@@ -81,7 +81,7 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
                 }else if (strcmp(long_options[option_index].name, "max_kernel_size") == 0){
                     *max_kernel_size = (int) atoi(optarg);
                 }else if (strcmp(long_options[option_index].name, "method") == 0){
-                    if (strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "all") == 0){
+                    if (strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "gpu_shared") == 0 || strcmp(optarg, "all") == 0){
                         strcpy(method, optarg);
                     }
                     else{

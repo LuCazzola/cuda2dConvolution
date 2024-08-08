@@ -96,17 +96,26 @@ __global__
 void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int K_DIM) {
     
     const int PAD = (int) (K_DIM / 2);
+    const int IN_TILE_DIM = blockDim.x;
+    const int OUT_TILE_DIM = IN_TILE_DIM - 2*PAD;
     
-    int in_tile_dim = blockDim.x;
-    int out_tile_dim = in_tile_dim - 2*PAD;
-    
-    int col = blockIdx.x*out_tile_dim + threadIdx.x - PAD;
-    int row = blockIdx.y*out_tile_dim + threadIdx.y - PAD; 
+    int col = blockIdx.x*OUT_TILE_DIM + threadIdx.x - PAD;
+    int row = blockIdx.y*OUT_TILE_DIM + threadIdx.y - PAD; 
 
     // Loading input tile
-    extern __shared__ matrix_element shared_image[];
-    K = &shared_image[(blockDim.x+2*PAD)*(blockDim.y+2*PAD)*C];
+    extern __shared__ matrix_element buffer[];
+    matrix shared_image = &buffer[0];
+    matrix shared_K = &buffer[(IN_TILE_DIM + 2*PAD)*(IN_TILE_DIM + 2*PAD)*C];
 
+    // Loading kernel
+    if (threadIdx.x == 0 && threadIdx.y == 0){
+        for(int i = 0; i < K_DIM; i++){
+            for(int j = 0; j < K_DIM; j++){
+                shared_K[i*K_DIM + j] = K[i*K_DIM + j];
+            }
+        }
+    }
+    // Load image patch
     for(int c = 0; c < C; c++){
         if(row >= 0 && row < H && col >= 0 && col < W){
             shared_image[threadIdx.y*blockDim.x*C + threadIdx.x*C + c] = image[row*W*C + col*C + c];
@@ -123,12 +132,12 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
     int tileRow = threadIdx.y - PAD;
     // Turning off threads at the edges of the block
     if(col >= 0 && col < W && row >= 0 && row < H){
-        if(tileCol >= 0 && tileCol < out_tile_dim && tileRow >= 0 && tileRow < out_tile_dim){
+        if(tileCol >= 0 && tileCol < OUT_TILE_DIM && tileRow >= 0 && tileRow < OUT_TILE_DIM){
             for(int c = 0; c < C; c++){
                 float sum = 0.0f;
                 for(int i = 0; i < K_DIM; i++){
                     for(int j = 0; j < K_DIM; j++){
-                        sum += K[i*K_DIM + j] * shared_image[(tileRow+i)*blockDim.x*C + (tileCol+j)*C + c];
+                        sum += shared_K[i*K_DIM + j] * shared_image[(tileRow+i)*blockDim.x*C + (tileCol+j)*C + c];
                     }
                 }
                 output[row*W*C + col*C + c] = sum;

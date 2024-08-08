@@ -135,8 +135,8 @@ int main(int argc, char * argv []){
         const int BLOCK_X = (int) ((input_image->W) + 1) / TH_SIZE_X; 
         const int BLOCK_Y = (int) ((input_image->H) + 1) / TH_SIZE_Y;
         dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
-        dim3 dimBlocks(TH_SIZE_X+2*PAD, TH_SIZE_Y+2*PAD, 1);
-        size_t shared_mem_size = (TH_SIZE_X+2*PAD) * (TH_SIZE_Y+2*PAD) * input_image->C * sizeof(matrix_element) + (K_DIM*K_DIM) * sizeof(matrix_element);
+        dim3 dimBlocks(TH_SIZE_X + 2*PAD, TH_SIZE_Y + 2*PAD, 1);
+        size_t shared_mem_size = ((TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*input_image->C + TOT_K_DIM) * sizeof(matrix_element);
 
         TIMER_START;
         gpu_convolution_shared<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_K, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
