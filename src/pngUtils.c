@@ -1,15 +1,14 @@
 #include "headers/pngUtils.h"
 
 // allocate memory for a 'PngImage' struct object 
-PngImage* make_img(png_structp png_ptr, png_infop info_ptr, int padding) {
+PngImage* make_img(png_structp png_ptr, png_infop info_ptr) {
     PngImage* img = (PngImage*)malloc(sizeof(PngImage));
-    img->PAD = padding;
     img->W = png_get_image_width(png_ptr, info_ptr);
     img->H = png_get_image_height(png_ptr, info_ptr);
     img->color_type = png_get_color_type(png_ptr, info_ptr);
     img->C = get_num_channels(img->color_type);
 
-    img->val = (matrix)malloc(sizeof(matrix_element) * (img->W + 2*img->PAD) * (img->H + 2*img->PAD) * img->C);
+    img->val = (matrix)malloc(sizeof(matrix_element) * img->W * img->H * img->C);
     return img;
 }
 
@@ -38,7 +37,7 @@ unsigned int get_num_channels(png_byte color_type) {
 }
 
 // outputs a 'PngImage' object according to the specified '.png' file content
-PngImage* read_png(char *file_name, int padding) {
+PngImage* read_png(char *file_name) {
     FILE *fp = fopen(file_name, "rb");
     if (!fp) {
         perror("Failed to open file for reading");
@@ -53,11 +52,11 @@ PngImage* read_png(char *file_name, int padding) {
     png_bytepp row_pointers = png_get_rows(png_ptr, info_ptr);
 
     // initialize custom image type
-    PngImage* img = make_img(png_ptr, info_ptr, padding);
+    PngImage* img = make_img(png_ptr, info_ptr);
     for (unsigned int i = 0; i < img->H; i++) {
         for (unsigned int j = 0; j < img->W; j++) {
             for (unsigned int c = 0; c < img->C; c++) {
-                img->val[((i+img->PAD) * (img->W+ 2*img->PAD) * img->C) + ((j+img->PAD) * img->C) + c] = (matrix_element)row_pointers[i][(j * img->C) + c];
+                img->val[i*img->W*img->C + j*img->C + c] = (matrix_element)row_pointers[i][j*img->C + c];
             }
         }
     }
@@ -99,7 +98,7 @@ void write_png(char *file_name, PngImage *img) {
         row_pointers[i] = (png_bytep) malloc(sizeof(png_byte) * img->W * 3);
         for (unsigned int j = 0; j < img->W; j++) {
             for (unsigned int c = 0; c < img->C; c++){
-                row_pointers[i][j*img->C + c] = img->val[((i+img->PAD) * (img->W+2*img->PAD) * img->C) + ((j+img->PAD) * img->C) + c];
+                row_pointers[i][j*img->C + c] = img->val[i*img->W*img->C + j*img->C + c];
             }
         }
     }
