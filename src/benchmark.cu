@@ -115,10 +115,9 @@ int main(int argc, char * argv []){
     matrix d_in_img, d_out_img, d_k, filler;
 
     int K_SIZE;           // kernel size (assumed to be squared), K_SIZE = 3 means the kernel is (3x3)
-    int TOT_SIZE;         // total size of an image (including padding)
-    int TOT_SIZE_NOPAD;   // total size of an image (excluded padding)
+    int TOT_SIZE;         // total size of an image
     int TOT_K_SIZE;
-    int W, H, C, PAD;
+    int W, H, C;
 
     long int Br_Bw;            // Bytes-read Bytes-wrote done
     long int Flo;              // Float in point operations done
@@ -146,26 +145,24 @@ int main(int argc, char * argv []){
             
             // setup fake .png for benchmark
             C = 3;                 // in benchmark, number of channels is kept fixed = 3
-            PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
 
             for (i = 0; i < num_size_configurations; i++){
 
                 // set size parameters
                 W = (int)pow(2,i+min_powerof2);
                 H = W;
-                TOT_SIZE = (W + 2*PAD)*(H + 2*PAD)*C;
-                TOT_SIZE_NOPAD = W * H * C;
-                printf("\n   matrix size : [%d x %d x %d] + %d pad ", W, H, C, PAD);
+                TOT_SIZE = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d]", W, H, C);
 
                 // define metrics
-                Br_Bw = get_conv_bytes_read_write(W, H, C, PAD, K_SIZE);
-                Flo = get_conv_flops(W, H, C, PAD, K_SIZE);
+                Br_Bw = get_conv_bytes_read_write(W, H, C, K_SIZE);
+                Flo = get_conv_flops(W, H, C, K_SIZE);
 
                 for (j = 0; j < (iterations_per_config+warmup_runs); j++){
 
                     // allocate mem.
-                    h_in_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);         // input image (including padding)
-                    h_out_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE_NOPAD);   // output image (which has no padding)
+                    h_in_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);    // input image 
+                    h_out_img = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);   // output image
                     h_k = (matrix) malloc(sizeof(float) * TOT_K_SIZE);                    // kernel filter
                     // fill with random values
                     fill_matrix_random(h_in_img, TOT_SIZE);
@@ -173,7 +170,7 @@ int main(int argc, char * argv []){
 
                     // ---- START ----
                     TIMER_START;
-                    cpu_convolution_naive(h_in_img, h_k, h_out_img, W, H, C, PAD, K_SIZE);
+                    cpu_convolution_naive(h_in_img, h_k, h_out_img, W, H, C, K_SIZE);
                     TIMER_STOP;
                     // ----- END -----
 
@@ -215,33 +212,31 @@ int main(int argc, char * argv []){
             
             // setup fake .png for benchmark
             C = 3;     // in benchmark, number of channels is kept fixed = 3
-            PAD = (int)(K_SIZE/2); // padding size is always dependent on the choice of kernel
             
             for (i = 0; i < num_size_configurations; i++){
                 // set size parameters
                 W = (int)pow(2, i+min_powerof2);
                 H = W;
-                TOT_SIZE = (W + 2*PAD)*(H + 2*PAD)*C;
-                TOT_SIZE_NOPAD = W * H * C;
-                printf("\n   matrix size : [%d x %d x %d] + %d pad ", W, H, C, PAD);
+                TOT_SIZE = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d]", W, H, C);
 
                 // define metrics
-                Br_Bw = get_conv_bytes_read_write(W, H, C, PAD, K_SIZE);
-                Flo = get_conv_flops(W, H, C, PAD, K_SIZE);
+                Br_Bw = get_conv_bytes_read_write(W, H, C, K_SIZE);
+                Flo = get_conv_flops(W, H, C, K_SIZE);
 
-                BLOCK_X = (int) ((W + 2*PAD) + 1) / TH_SIZE_X; 
-                BLOCK_Y = (int) ((H + 2*PAD) + 1) / TH_SIZE_Y;
+                BLOCK_X = (int) (W + 1) / TH_SIZE_X; 
+                BLOCK_Y = (int) (H + 1) / TH_SIZE_Y;
                 dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
                 dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
 
                 for (j = 0; j < iterations_per_config + warmup_runs; j++){
                     // Allocate space on the DEVICE global memory (both for image and kernel)
                     checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
-                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE * sizeof(matrix_element)) );
                     checkCuda( cudaMalloc((void **)&d_k, TOT_K_SIZE * sizeof(matrix_element)) );
 
                     checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
-                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE_NOPAD * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE * sizeof(matrix_element)) );
                     checkCuda( cudaMemset(d_k, 0, TOT_K_SIZE * sizeof(matrix_element)) );
 
                     // Fill the matrix with random values
@@ -256,7 +251,7 @@ int main(int argc, char * argv []){
 
                     // ---- START ----
                     TIMER_START;
-                    gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_img, d_k, d_out_img, W, H, C, PAD, K_SIZE);
+                    gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_img, d_k, d_out_img, W, H, C, K_SIZE);
                     checkCuda( cudaDeviceSynchronize() );
                     TIMER_STOP;
                     // ----- END -----
