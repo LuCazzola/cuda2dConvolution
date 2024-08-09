@@ -161,6 +161,21 @@ int main(int argc, char * argv []){
         TIMER_STOP;
         checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
     }
+    else if (strcmp(method, "gpu_shared_constk_cached") == 0){
+        const int BLOCK_X = (int) ((input_image->W) + 1) / TH_SIZE_X; 
+        const int BLOCK_Y = (int) ((input_image->H) + 1) / TH_SIZE_Y;
+        dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+        dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
+        size_t shared_mem_size = TH_SIZE_X*TH_SIZE_Y*input_image->C * sizeof(matrix_element);
+
+        fill_const_kernel (h_k, TOT_K_DIM);
+
+        TIMER_START;
+        gpu_convolution_shared_constk_cached<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
+        checkCuda( cudaDeviceSynchronize() );
+        TIMER_STOP;
+        checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
+    }
 
     // ===================================== SHOW RESULTS =====================================
     

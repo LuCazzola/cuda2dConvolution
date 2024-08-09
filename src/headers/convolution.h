@@ -13,7 +13,7 @@ void cpu_convolution_naive(matrix image, matrix K, matrix output, const int W, c
 __global__ void gpu_convolution_naive(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int K_DIM );
 __global__ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int K_DIM );
 __global__ void gpu_convolution_shared_constk(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM);
-
+__global__ void gpu_convolution_shared_constk_cached(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM);
 
 // set kernel as average kernel
 void fill_mean_kernel (matrix K, const int K_DIM);

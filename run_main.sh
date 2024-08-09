@@ -21,11 +21,12 @@
 
 ### User Variables ###
 # method to use for image processing, available methods :
-method="gpu_shared_constk"  
+method="gpu_shared_constk_cached"  
 # - "cpu_naive"
 # - "gpu_naive"
 # - "gpu_shared"
 # - "gpu_shared_constk"
+# - "gpu_shared_constk_cached"
 
 # path to the image to process
 input_png_path="images/lenna.png"
