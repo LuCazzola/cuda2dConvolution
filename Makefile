@@ -5,7 +5,7 @@ ADDITIONAL_OPTIM_FALG := -O2
 # chose among {"int", "float"}
 MATRIX_ELEM_DTYPE := float
 # allocated constant memory
-CONST_MEM_SIZE := 1764
+CONST_MEM_SIZE := 441
 
 ### General Variables ###
 SOURCEDIR := src

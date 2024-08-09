@@ -47,6 +47,7 @@ int* generate_image(int dim_x, int dim_y){
     return image;
 }
 
+
 int main(int argc, char * argv []){
 
     // ===================================== Parameters Setup =====================================
@@ -152,7 +153,7 @@ int main(int argc, char * argv []){
         dim3 dimBlocks(TH_SIZE_X + 2*PAD, TH_SIZE_Y + 2*PAD, 1);
         size_t shared_mem_size = (TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*input_image->C * sizeof(matrix_element);
 
-        checkCuda( cudaMemcpyToSymbol(c_k, h_k, TOT_K_SIZE * sizeof(matrix_element)) );
+        fill_const_kernel (h_k, TOT_K_DIM);
 
         TIMER_START;
         gpu_convolution_shared_constk<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);

@@ -146,6 +146,14 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
     }
 }
 
+
+// kernel in constant memory
+__constant__ matrix_element c_k[CONST_MEM_SIZE];
+
+void fill_const_kernel (matrix h_k, const int TOT_K_DIM){
+    checkCuda( cudaMemcpyToSymbol(c_k, h_k, TOT_K_DIM * sizeof(matrix_element), 0, cudaMemcpyHostToDevice) );
+}
+
 __global__ 
 void gpu_convolution_shared_constk(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM) {
     
