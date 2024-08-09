@@ -81,10 +81,10 @@ int main(int argc, char * argv []){
 
     // HOST side
     //
-    matrix h_in_image, h_out_image, h_K;
+    matrix h_in_image, h_out_image, h_k;
     // kernel
-    h_K = (matrix) malloc(sizeof(matrix_element) * TOT_K_DIM);
-    fill_mean_kernel(h_K, K_DIM);
+    h_k = (matrix) malloc(sizeof(matrix_element) * TOT_K_DIM);
+    fill_mean_kernel(h_k, K_DIM);
     // input image
     h_in_image = (matrix) malloc(sizeof(matrix_element) * TOT_SIZE);
     memcpy(h_in_image, input_image->val, sizeof(matrix_element) * TOT_SIZE);
@@ -93,10 +93,10 @@ int main(int argc, char * argv []){
 
     // DEVICE side
     //
-    matrix d_in_image, d_out_image, d_K;
+    matrix d_in_image, d_out_image, d_k;
     // kernel
-    checkCuda( cudaMalloc(&d_K, TOT_K_DIM * sizeof(matrix_element)) );
-    checkCuda( cudaMemcpy(d_K, h_K, TOT_K_DIM * sizeof(matrix_element), cudaMemcpyHostToDevice) );
+    checkCuda( cudaMalloc(&d_k, TOT_K_DIM * sizeof(matrix_element)) );
+    checkCuda( cudaMemcpy(d_k, h_k, TOT_K_DIM * sizeof(matrix_element), cudaMemcpyHostToDevice) );
     // input image
     checkCuda( cudaMalloc(&d_in_image, TOT_SIZE * sizeof(matrix_element)) );
     checkCuda( cudaMemcpy(d_in_image, h_in_image, TOT_SIZE * sizeof(matrix_element), cudaMemcpyHostToDevice) );
@@ -115,7 +115,7 @@ int main(int argc, char * argv []){
 
     if (strcmp(method, "cpu_naive") == 0){
         TIMER_START;
-        cpu_convolution_naive(h_in_image, h_K, h_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
+        cpu_convolution_naive(h_in_image, h_k, h_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
         TIMER_STOP;
     }
     else if (strcmp(method, "gpu_naive") == 0){
@@ -125,7 +125,7 @@ int main(int argc, char * argv []){
         dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
 
         TIMER_START;
-        gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_image, d_K, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
+        gpu_convolution_naive<<<numBlocks, dimBlocks>>>(d_in_image, d_k, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
         checkCuda( cudaDeviceSynchronize() );
         TIMER_STOP;
         checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
@@ -139,7 +139,23 @@ int main(int argc, char * argv []){
         size_t shared_mem_size = ((TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*input_image->C + TOT_K_DIM) * sizeof(matrix_element);
 
         TIMER_START;
-        gpu_convolution_shared<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_K, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
+        gpu_convolution_shared<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_k, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
+        checkCuda( cudaDeviceSynchronize() );
+        TIMER_STOP;
+        checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
+    }
+    else if (strcmp(method, "gpu_shared_constk") == 0){
+        const int PAD = (int) (K_DIM / 2);
+        const int BLOCK_X = (int) ((input_image->W) + 1) / TH_SIZE_X; 
+        const int BLOCK_Y = (int) ((input_image->H) + 1) / TH_SIZE_Y;
+        dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+        dim3 dimBlocks(TH_SIZE_X + 2*PAD, TH_SIZE_Y + 2*PAD, 1);
+        size_t shared_mem_size = (TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*input_image->C * sizeof(matrix_element);
+
+        checkCuda( cudaMemcpyToSymbol(c_k, h_k, TOT_K_SIZE * sizeof(matrix_element)) );
+
+        TIMER_START;
+        gpu_convolution_shared_constk<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
         checkCuda( cudaDeviceSynchronize() );
         TIMER_STOP;
         checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
@@ -161,11 +177,11 @@ int main(int argc, char * argv []){
     // host side
     free(h_in_image);
     free(h_out_image);
-    free(h_K);
+    free(h_k);
     // device side
     checkCuda( cudaFree(d_in_image) ); 
     checkCuda( cudaFree(d_out_image) );
-    checkCuda( cudaFree(d_K) );
+    checkCuda( cudaFree(d_k) );
     
     return 0;
 }

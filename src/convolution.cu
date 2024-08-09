@@ -145,3 +145,47 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
         }
     }
 }
+
+__global__ 
+void gpu_convolution_shared_constk(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM) {
+    
+    const int PAD = (int) (K_DIM / 2);
+    const int IN_TILE_DIM = blockDim.x;
+    const int OUT_TILE_DIM = IN_TILE_DIM - 2*PAD;
+    
+    int col = blockIdx.x*OUT_TILE_DIM + threadIdx.x - PAD;
+    int row = blockIdx.y*OUT_TILE_DIM + threadIdx.y - PAD; 
+
+    // Loading input tile
+    extern __shared__ matrix_element shared_image[];
+
+    // Load image patch
+    for(int c = 0; c < C; c++){
+        if(row >= 0 && row < H && col >= 0 && col < W){
+            shared_image[threadIdx.y*blockDim.x*C + threadIdx.x*C + c] = image[row*W*C + col*C + c];
+        }
+        else {
+            shared_image[threadIdx.y*blockDim.x*C + threadIdx.x*C + c] = 0.0;
+        }
+    }
+
+    __syncthreads();
+
+    // Calculating output elements
+    int tileCol = threadIdx.x - PAD;
+    int tileRow = threadIdx.y - PAD;
+    // Turning off threads at the edges of the block
+    if(col >= 0 && col < W && row >= 0 && row < H){
+        if(tileCol >= 0 && tileCol < OUT_TILE_DIM && tileRow >= 0 && tileRow < OUT_TILE_DIM){
+            for(int c = 0; c < C; c++){
+                float sum = 0.0f;
+                for(int i = 0; i < K_DIM; i++){
+                    for(int j = 0; j < K_DIM; j++){
+                        sum += c_k[i*K_DIM + j] * shared_image[(tileRow+i)*blockDim.x*C + (tileCol+j)*C + c];
+                    }
+                }
+                output[row*W*C + col*C + c] = sum;
+            }
+        }
+    }
+}
