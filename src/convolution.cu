@@ -203,39 +203,37 @@ void gpu_convolution_shared_constk_cached(matrix image, matrix output, const int
     const int PAD = (int) (K_DIM / 2);
     const int TILE_DIM = blockDim.x;
     
-    int col = blockIdx.x*TILE_DIM + threadIdx.x - PAD;
-    int row = blockIdx.y*TILE_DIM + threadIdx.y - PAD; 
+    int col = blockIdx.x*TILE_DIM + threadIdx.x;
+    int row = blockIdx.y*TILE_DIM + threadIdx.y; 
 
     // Loading input tile
     extern __shared__ matrix_element shared_image[];
 
     // Load image patch
     for(int c = 0; c < C; c++){
-        if(row >= 0 && row < H && col >= 0 && col < W){
-            shared_image[threadIdx.y*blockDim.x*C + threadIdx.x*C + c] = image[row*W*C + col*C + c];
+        if(row < H && col < W){
+            shared_image[threadIdx.y*TILE_DIM*C + threadIdx.x*C + c] = image[row*W*C + col*C + c];
         }
         else {
-            shared_image[threadIdx.y*blockDim.x*C + threadIdx.x*C + c] = 0.0;
+            shared_image[threadIdx.y*TILE_DIM*C + threadIdx.x*C + c] = 0.0;
         }
     }
 
     __syncthreads();
 
-    int x = (int) threadIdx.x;
-    int y = (int) threadIdx.y;
+
     // Calculating output elements
+    
     if(col < W && row < H){
-        float sum = 0.0f;
         for(int c = 0; c < C; c++){
+            float sum = 0.0f;
             for(int i = 0; i < K_DIM; i++){
                 for(int j = 0; j < K_DIM; j++){
-                    if(x - PAD + j >= 0 && x - PAD + j < TILE_DIM && y - PAD + i >= 0 && y - PAD + i < TILE_DIM){
-                        sum += c_k[i*K_DIM + j] * shared_image[(y+i)*TILE_DIM*C + (x+j)*C + c]; 
+                    if(threadIdx.x-PAD+j >= 0 && threadIdx.x-PAD+j < TILE_DIM && threadIdx.y-PAD+i >= 0 && threadIdx.y-PAD+i < TILE_DIM){
+                        sum += c_k[i*K_DIM + j] * shared_image[(threadIdx.y+i)*TILE_DIM*C + (threadIdx.x+j)*C + c]; 
                     }
-                    else{
-                        if(row - PAD + i >= 0 && row - PAD + i < H && col - PAD + j >= 0 &&  col - PAD + j < W){
-                            sum += c_k[i*K_DIM + j] * image[(row-PAD+i)*W*C + (col - PAD + j)*C + c];
-                        }
+                    else if(row-PAD+i >= 0 && row-PAD+i < H && col-PAD+j >= 0 && col-PAD+j < W){
+                        sum += c_k[i*K_DIM + j] * image[(row-PAD+i)*W*C + (col-PAD+j)*C + c];
                     }
                 }
             }
