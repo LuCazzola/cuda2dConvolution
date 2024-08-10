@@ -223,14 +223,15 @@ void gpu_convolution_shared_constk_cached(matrix image, matrix output, const int
 
 
     // Calculating output elements
-    
+    int x = (int) threadIdx.x;
+    int y = (int) threadIdx.y;
     if(col < W && row < H){
         for(int c = 0; c < C; c++){
             float sum = 0.0f;
             for(int i = 0; i < K_DIM; i++){
                 for(int j = 0; j < K_DIM; j++){
-                    if(threadIdx.x-PAD+j >= 0 && threadIdx.x-PAD+j < TILE_DIM && threadIdx.y-PAD+i >= 0 && threadIdx.y-PAD+i < TILE_DIM){
-                        sum += c_k[i*K_DIM + j] * shared_image[(threadIdx.y+i)*TILE_DIM*C + (threadIdx.x+j)*C + c]; 
+                    if(x-PAD+j >= 0 && x-PAD+j < TILE_DIM && y-PAD+i >= 0 && y-PAD+i < TILE_DIM){
+                        sum += c_k[i*K_DIM + j] * shared_image[(y+i-PAD)*TILE_DIM*C + (x+j-PAD)*C + c]; 
                     }
                     else if(row-PAD+i >= 0 && row-PAD+i < H && col-PAD+j >= 0 && col-PAD+j < W){
                         sum += c_k[i*K_DIM + j] * image[(row-PAD+i)*W*C + (col-PAD+j)*C + c];
