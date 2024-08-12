@@ -278,6 +278,263 @@ int main(int argc, char * argv []){
         print_csv(output_filename, exec_time, effective_bandwidth, flops, num_kernel_configurations, num_size_configurations, iterations_per_config, min_kernel_size, max_kernel_size, min_powerof2);
     }
 
+
+    /*
+    =================================================================================================================
+    ===================================== PERFORM TEST GPU_convolution_shared() =====================================
+    =================================================================================================================
+    */
+
+    if (strcmp(method, "gpu_shared") == 0 || strcmp(method, "all") == 0){
+        printf("\nComputing statystics for : 'gpu_convolution_shared()' :");
+        
+        for (k = 0; k < num_kernel_configurations; k++){
+            // setup kernel
+            K_SIZE = min_kernel_size + 2*k;
+            TOT_K_SIZE = K_SIZE*K_SIZE;
+            printf("\n   kernel size : %d x %d", K_SIZE, K_SIZE);
+            
+            // setup fake .png for benchmark
+            C = 3;     // in benchmark, number of channels is kept fixed = 3
+            int PAD = (int) (K_SIZE / 2);
+
+            for (i = 0; i < num_size_configurations; i++){
+                // set size parameters
+                W = (int)pow(2, i+min_powerof2);
+                H = W;
+                TOT_SIZE = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d]", W, H, C);
+
+                // define metrics
+                Br_Bw = get_conv_bytes_read_write(W, H, C, K_SIZE);
+                Flo = get_conv_flops(W, H, C, K_SIZE);
+
+                BLOCK_X = (int) (W + 1) / TH_SIZE_X; 
+                BLOCK_Y = (int) (H + 1) / TH_SIZE_Y;
+                dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+                dim3 dimBlocks(TH_SIZE_X + 2*PAD, TH_SIZE_Y + 2*PAD, 1);
+                size_t shared_mem_size = ((TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*C + TOT_K_SIZE) * sizeof(matrix_element);
+
+
+                for (j = 0; j < iterations_per_config + warmup_runs; j++){
+                    // Allocate space on the DEVICE global memory (both for image and kernel)
+                    checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_k, TOT_K_SIZE * sizeof(matrix_element)) );
+
+                    checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_k, 0, TOT_K_SIZE * sizeof(matrix_element)) );
+
+                    // Fill the matrix with random values
+                    gpu_fill_rand(d_in_img, TOT_SIZE);
+                    gpu_fill_rand(d_k, TOT_K_SIZE);
+
+                    // allocate a filler block as large as the L2 cache and access it
+                    // that's used to basically flush the L2 cache from previous accesses
+                    checkCuda( cudaMalloc((void **)&filler, 2*L2_CACHE_SIZE) );  
+                    checkCuda( cudaMemset(filler, 0, 2*L2_CACHE_SIZE) );
+                    checkCuda( cudaFree(filler) );
+                    
+                    // ---- START ----
+                    TIMER_START;
+                    gpu_convolution_shared<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_img, d_k, d_out_img, W, H, C, K_SIZE);
+                    checkCuda( cudaDeviceSynchronize() );
+                    TIMER_STOP;
+                    // ----- END -----
+
+                    // begin storing values only after "warmup_runs" are done
+                    if (j >= warmup_runs){
+                        exec_time[k][i][j-warmup_runs] = TIMER_ELAPSED;                                                             // seconds
+                        effective_bandwidth[k][i][j-warmup_runs] = ((double)Br_Bw / (double)pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
+                        flops[k][i][j-warmup_runs] = ((double)Flo / (double)pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
+                    }
+
+                    /// Free memory
+                    checkCuda( cudaFree(d_in_img) );
+                    checkCuda( cudaFree(d_out_img) );
+                    checkCuda( cudaFree(d_k) );
+                }
+            }
+            printf("\n");
+        }
+        // Write results on a .csv file
+        char output_filename[100] = "";  // filename buffer
+        sprintf(output_filename,"data/GPU-conv-shared_%d-to-%d-kernel_%d-to-%d-size_%d-by-%d-th-per-block_%d-iter.csv", min_kernel_size, max_kernel_size, min_powerof2, max_powerof2, TH_SIZE_X, TH_SIZE_Y, iterations_per_config);
+        print_csv(output_filename, exec_time, effective_bandwidth, flops, num_kernel_configurations, num_size_configurations, iterations_per_config, min_kernel_size, max_kernel_size, min_powerof2);
+    }
+
+
+    /*
+    ========================================================================================================================
+    ===================================== PERFORM TEST GPU_convolution_shared_constk() =====================================
+    ========================================================================================================================
+    */
+
+    if (strcmp(method, "gpu_shared_constk") == 0 || strcmp(method, "all") == 0){
+        printf("\nComputing statystics for : 'gpu_convolution_shared_constk()' :");
+        
+        for (k = 0; k < num_kernel_configurations; k++){
+            // setup kernel
+            K_SIZE = min_kernel_size + 2*k;
+            TOT_K_SIZE = K_SIZE*K_SIZE;
+            printf("\n   kernel size : %d x %d", K_SIZE, K_SIZE);
+            
+            // setup fake .png for benchmark
+            C = 3;     // in benchmark, number of channels is kept fixed = 3
+            int PAD = (int) (K_SIZE / 2);
+
+            for (i = 0; i < num_size_configurations; i++){
+                // set size parameters
+                W = (int)pow(2, i+min_powerof2);
+                H = W;
+                TOT_SIZE = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d]", W, H, C);
+
+                // define metrics
+                Br_Bw = get_conv_bytes_read_write(W, H, C, K_SIZE);
+                Flo = get_conv_flops(W, H, C, K_SIZE);
+
+                BLOCK_X = (int) (W + 1) / TH_SIZE_X; 
+                BLOCK_Y = (int) (H + 1) / TH_SIZE_Y;
+                dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+                dim3 dimBlocks(TH_SIZE_X + 2*PAD, TH_SIZE_Y + 2*PAD, 1);
+                size_t shared_mem_size = ((TH_SIZE_X + 2*PAD)*(TH_SIZE_Y + 2*PAD)*C + TOT_K_SIZE) * sizeof(matrix_element);
+
+
+                for (j = 0; j < iterations_per_config + warmup_runs; j++){
+                    // Allocate space on the DEVICE global memory (both for image and kernel)
+                    checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE * sizeof(matrix_element)) );
+                    h_k = (matrix) malloc(sizeof(float) * TOT_K_SIZE);                    // kernel filter
+
+                    checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+
+                    // Fill the matrix with random values
+                    gpu_fill_rand(d_in_img, TOT_SIZE);
+                    fill_matrix_random(h_k, TOT_K_SIZE);
+                    fill_const_kernel (h_k, TOT_K_SIZE);
+
+                    // allocate a filler block as large as the L2 cache and access it
+                    // that's used to basically flush the L2 cache from previous accesses
+                    checkCuda( cudaMalloc((void **)&filler, 2*L2_CACHE_SIZE) );  
+                    checkCuda( cudaMemset(filler, 0, 2*L2_CACHE_SIZE) );
+                    checkCuda( cudaFree(filler) );
+                    
+                    // ---- START ----
+                    TIMER_START;
+                    gpu_convolution_shared_constk<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_img, d_out_img, W, H, C, K_SIZE);
+                    checkCuda( cudaDeviceSynchronize() );
+                    TIMER_STOP;
+                    // ----- END -----
+
+                    // begin storing values only after "warmup_runs" are done
+                    if (j >= warmup_runs){
+                        exec_time[k][i][j-warmup_runs] = TIMER_ELAPSED;                                                             // seconds
+                        effective_bandwidth[k][i][j-warmup_runs] = ((double)Br_Bw / (double)pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
+                        flops[k][i][j-warmup_runs] = ((double)Flo / (double)pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
+                    }
+
+                    /// Free memory
+                    checkCuda( cudaFree(d_in_img) );
+                    checkCuda( cudaFree(d_out_img) );
+                    free(h_k);
+                }
+            }
+            printf("\n");
+        }
+        // Write results on a .csv file
+        char output_filename[100] = "";  // filename buffer
+        sprintf(output_filename,"data/GPU-conv-shared-constk_%d-to-%d-kernel_%d-to-%d-size_%d-by-%d-th-per-block_%d-iter.csv", min_kernel_size, max_kernel_size, min_powerof2, max_powerof2, TH_SIZE_X, TH_SIZE_Y, iterations_per_config);
+        print_csv(output_filename, exec_time, effective_bandwidth, flops, num_kernel_configurations, num_size_configurations, iterations_per_config, min_kernel_size, max_kernel_size, min_powerof2);
+    }
+
+
+    /*
+    ===============================================================================================================================
+    ===================================== PERFORM TEST GPU_convolution_shared_constk_cached() =====================================
+    ===============================================================================================================================
+    */
+
+    if (strcmp(method, "gpu_shared_constk_cached") == 0 || strcmp(method, "all") == 0){
+        printf("\nComputing statystics for : 'gpu_convolution_shared_constk_cached()' :");
+        
+        for (k = 0; k < num_kernel_configurations; k++){
+            // setup kernel
+            K_SIZE = min_kernel_size + 2*k;
+            TOT_K_SIZE = K_SIZE*K_SIZE;
+            printf("\n   kernel size : %d x %d", K_SIZE, K_SIZE);
+            
+            // setup fake .png for benchmark
+            C = 3;     // in benchmark, number of channels is kept fixed = 3
+
+            for (i = 0; i < num_size_configurations; i++){
+                // set size parameters
+                W = (int)pow(2, i+min_powerof2);
+                H = W;
+                TOT_SIZE = W * H * C;
+                printf("\n   matrix size : [%d x %d x %d]", W, H, C);
+
+                // define metrics
+                Br_Bw = get_conv_bytes_read_write(W, H, C, K_SIZE);
+                Flo = get_conv_flops(W, H, C, K_SIZE);
+
+                BLOCK_X = (int) (W + 1) / TH_SIZE_X; 
+                BLOCK_Y = (int) (H + 1) / TH_SIZE_Y;
+                dim3 numBlocks(BLOCK_X, BLOCK_Y, 1);
+                dim3 dimBlocks(TH_SIZE_X, TH_SIZE_Y, 1);
+                size_t shared_mem_size = TH_SIZE_X*TH_SIZE_Y*C * sizeof(matrix_element);
+
+
+                for (j = 0; j < iterations_per_config + warmup_runs; j++){
+                    // Allocate space on the DEVICE global memory (both for image and kernel)
+                    checkCuda( cudaMalloc((void **)&d_in_img, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMalloc((void **)&d_out_img, TOT_SIZE * sizeof(matrix_element)) );
+                    h_k = (matrix) malloc(sizeof(float) * TOT_K_SIZE);                    // kernel filter
+
+                    checkCuda( cudaMemset(d_in_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+                    checkCuda( cudaMemset(d_out_img, 0, TOT_SIZE * sizeof(matrix_element)) );
+
+                    // Fill the matrix with random values
+                    gpu_fill_rand(d_in_img, TOT_SIZE);
+                    fill_matrix_random(h_k, TOT_K_SIZE);
+                    fill_const_kernel (h_k, TOT_K_SIZE);
+
+                    // allocate a filler block as large as the L2 cache and access it
+                    // that's used to basically flush the L2 cache from previous accesses
+                    checkCuda( cudaMalloc((void **)&filler, 2*L2_CACHE_SIZE) );  
+                    checkCuda( cudaMemset(filler, 0, 2*L2_CACHE_SIZE) );
+                    checkCuda( cudaFree(filler) );
+                    
+                    // ---- START ----
+                    TIMER_START;
+                    gpu_convolution_shared_constk_cached<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_img, d_out_img, W, H, C, K_SIZE);
+                    checkCuda( cudaDeviceSynchronize() );
+                    TIMER_STOP;
+                    // ----- END -----
+
+                    // begin storing values only after "warmup_runs" are done
+                    if (j >= warmup_runs){
+                        exec_time[k][i][j-warmup_runs] = TIMER_ELAPSED;                                                             // seconds
+                        effective_bandwidth[k][i][j-warmup_runs] = ((double)Br_Bw / (double)pow(10,9)) / (exec_time[k][i][j-warmup_runs] + 1e-8);   // GB/s
+                        flops[k][i][j-warmup_runs] = ((double)Flo / (double)pow(10,12)) / (exec_time[k][i][j-warmup_runs] + 1e-8);                  // TFLOPS
+                    }
+
+                    /// Free memory
+                    checkCuda( cudaFree(d_in_img) );
+                    checkCuda( cudaFree(d_out_img) );
+                    free(h_k);
+                }
+            }
+            printf("\n");
+        }
+        // Write results on a .csv file
+        char output_filename[100] = "";  // filename buffer
+        sprintf(output_filename,"data/GPU-conv-shared-constk-cached_%d-to-%d-kernel_%d-to-%d-size_%d-by-%d-th-per-block_%d-iter.csv", min_kernel_size, max_kernel_size, min_powerof2, max_powerof2, TH_SIZE_X, TH_SIZE_Y, iterations_per_config);
+        print_csv(output_filename, exec_time, effective_bandwidth, flops, num_kernel_configurations, num_size_configurations, iterations_per_config, min_kernel_size, max_kernel_size, min_powerof2);
+    }
+
     del_3d_vec(exec_time, num_kernel_configurations, num_size_configurations, iterations_per_config);
     del_3d_vec(effective_bandwidth, num_kernel_configurations, num_size_configurations, iterations_per_config);
     del_3d_vec(flops, num_kernel_configurations, num_size_configurations, iterations_per_config);

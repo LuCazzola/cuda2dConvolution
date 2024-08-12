@@ -10,6 +10,28 @@ void fill_mean_kernel (matrix K, const int K_DIM){
         }
     }
 }
+
+void generateGaussianKernel(matrix kernel, const int K_DIM, const float SIGMA) {
+    int half_size = (int) ((K_DIM-1) / 2);
+    float sum = 0.0;
+
+    // Calculate the values of the kernel
+    for (int i = -half_size; i <= half_size; i++) {
+        for (int j = -half_size; j <= half_size; j++) {
+            kernel[(i + half_size) * K_DIM + (j + half_size)] = (1 / (2 * M_PI * SIGMA * SIGMA)) * exp(-(i * i + j * j) / (2 * SIGMA * SIGMA));
+            sum += kernel[(i + half_size) * K_DIM + (j + half_size)];
+        }
+    }
+
+    // Normalize the kernel
+    for (int i = 0; i < K_DIM; i++) {
+        for (int j = 0; j < K_DIM; j++) {
+            kernel[i*K_DIM + j] /= sum;
+        }
+    }
+}
+
+
 // Get the number of bytes read and written by the convolution kernel
 long int get_conv_bytes_read_write(const int W, const int H, const int C, const int K_DIM){
     long int TOT_SIZE = W * H * C; 
@@ -95,7 +117,7 @@ void gpu_convolution_naive(matrix image, matrix K, matrix output, const int W, c
 __global__ 
 void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, const int H, const int C, const int K_DIM) {
     
-    const int PAD = (int) (K_DIM / 2);
+    const int PAD = (int)((K_DIM-1) / 2);
     const int IN_TILE_DIM = blockDim.x;
     const int OUT_TILE_DIM = IN_TILE_DIM - 2*PAD;
     
@@ -103,9 +125,8 @@ void gpu_convolution_shared(matrix image, matrix K, matrix output, const int W, 
     int row = blockIdx.y*OUT_TILE_DIM + threadIdx.y - PAD; 
 
     // Loading input tile
-    extern __shared__ matrix_element buffer[];
-    matrix shared_image = &buffer[0];
-    matrix shared_K = &buffer[(IN_TILE_DIM + 2*PAD)*(IN_TILE_DIM + 2*PAD)*C];
+    extern __shared__ matrix_element shared_image[];
+    matrix shared_K = (matrix)&shared_image[IN_TILE_DIM * IN_TILE_DIM * C];
 
     // Loading kernel
     if (threadIdx.x == 0 && threadIdx.y == 0){
@@ -157,7 +178,7 @@ void fill_const_kernel (matrix h_k, const int TOT_K_DIM){
 __global__ 
 void gpu_convolution_shared_constk(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM) {
     
-    const int PAD = (int) (K_DIM / 2);
+    const int PAD = (int)((K_DIM-1) / 2);
     const int IN_TILE_DIM = blockDim.x;
     const int OUT_TILE_DIM = IN_TILE_DIM - 2*PAD;
     
@@ -200,7 +221,7 @@ void gpu_convolution_shared_constk(matrix image, matrix output, const int W, con
 
 __global__ 
 void gpu_convolution_shared_constk_cached(matrix image, matrix output, const int W, const int H, const int C, const int K_DIM) {
-    const int PAD = (int) (K_DIM / 2);
+    const int PAD = (int)((K_DIM-1) / 2);
     const int TILE_DIM = blockDim.x;
     
     int col = blockIdx.x*TILE_DIM + threadIdx.x;

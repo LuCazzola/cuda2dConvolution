@@ -17,6 +17,8 @@ __global__ void gpu_convolution_shared_constk_cached(matrix image, matrix output
 
 // set kernel as average kernel
 void fill_mean_kernel (matrix K, const int K_DIM);
+// set kernel as gaussian kernel with specified sigma
+void generateGaussianKernel(matrix kernel, const int K_DIM, const float SIGMA);
 // wrapper function to fill array in constant memory
 void fill_const_kernel (matrix h_k, const int TOT_K_DIM);
 // Get the number of bytes read and written by the convolution kernel

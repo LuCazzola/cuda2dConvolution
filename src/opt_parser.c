@@ -19,7 +19,11 @@ void process_main_args (int argc, char *argv[], char* method, char* input_png_pa
         switch (c) {
             case 0: // Long option found
                 if (strcmp(long_options[option_index].name, "method") == 0) {
-                    if(strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "gpu_shared") == 0 || strcmp(optarg, "gpu_shared_constk") == 0 || strcmp(optarg, "gpu_shared_constk_cached") == 0){
+                    if (strcmp(optarg, "cpu_naive") == 0 ||
+                        strcmp(optarg, "gpu_naive") == 0 ||
+                        strcmp(optarg, "gpu_shared") == 0 ||
+                        strcmp(optarg, "gpu_shared_constk") == 0 ||
+                        strcmp(optarg, "gpu_shared_constk_cached") == 0){
                         strcpy(method, optarg);
                     }
                     else{
@@ -81,7 +85,13 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
                 }else if (strcmp(long_options[option_index].name, "max_kernel_size") == 0){
                     *max_kernel_size = (int) atoi(optarg);
                 }else if (strcmp(long_options[option_index].name, "method") == 0){
-                    if (strcmp(optarg, "cpu_naive") == 0 || strcmp(optarg, "gpu_naive") == 0 || strcmp(optarg, "gpu_shared") == 0 || strcmp(optarg, "all") == 0){
+                    if (strcmp(optarg, "cpu_naive") == 0 ||
+                        strcmp(optarg, "gpu_naive") == 0 ||
+                        strcmp(optarg, "gpu_shared") == 0 ||
+                        strcmp(optarg, "gpu_shared_constk") == 0 ||
+                        strcmp(optarg, "gpu_shared_constk_cached") == 0 ||
+                        strcmp(optarg, "all") == 0){
+
                         strcpy(method, optarg);
                     }
                     else{
