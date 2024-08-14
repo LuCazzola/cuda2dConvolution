@@ -32,8 +32,9 @@
 ### User Variables ###
 
 # chose which version of convolution operation to run :
-method="gpu_shared_constk"
+method="gpu_only"
 #   method = "all"                      : run ALL METHODS
+#   method = "gpu_only"                 : run ALL METHODS excluded cpu_convolution_naive()
 #   method = "cpu_naive"                : run cpu_convolution_naive()
 #   method = "gpu_naive"                : run gpu_convolution_naive()
 #   method = "gpu_shared"               : run gpu_convolution_shared()
@@ -43,15 +44,15 @@ method="gpu_shared_constk"
 # size of the FIRST kernel matrix : ( min_kernel_size x min_kernel_size )
 min_kernel_size=3
 # size of the LAST kernel matrix  : ( max_kernel_size x max_kernel_size )
-max_kernel_size=7
+max_kernel_size=9
 
 # size of the FIRST tested matrix : ( 2^min_powerof2 x 2^min_powerof2 )
-min_powerof2=6
+min_powerof2=8
 # size of the LAST tested matrix : ( 2^max_powerof2 x 2^max_powerof2 )
-max_powerof2=10
+max_powerof2=14
 
 # number of times each configuration of parameters is repeated executed
-iterations_per_config=10
+iterations_per_config=50
 
 # thread block size in the x direction (as a power of 2 => 2^th_size_x)
 th_size_x=4
