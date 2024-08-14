@@ -90,6 +90,7 @@ void process_benchmark_args(int argc, char *argv[], char *method, int* min_power
                         strcmp(optarg, "gpu_shared") == 0 ||
                         strcmp(optarg, "gpu_shared_constk") == 0 ||
                         strcmp(optarg, "gpu_shared_constk_cached") == 0 ||
+                        strcmp(optarg, "gpu_only") == 0 ||
                         strcmp(optarg, "all") == 0){
 
                         strcpy(method, optarg);

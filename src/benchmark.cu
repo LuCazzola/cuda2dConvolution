@@ -201,7 +201,7 @@ int main(int argc, char * argv []){
         ================================================================================================================
     */
 
-    if (strcmp(method, "gpu_naive") == 0 || strcmp(method, "all") == 0){
+    if (strcmp(method, "gpu_naive") == 0 || strcmp(method, "all") == 0 || strcmp(method, "gpu_only") == 0){
         printf("\nComputing statystics for : 'gpu_convolution_naive()' :");
         
         for (k = 0; k < num_kernel_configurations; k++){
@@ -285,7 +285,7 @@ int main(int argc, char * argv []){
     =================================================================================================================
     */
 
-    if (strcmp(method, "gpu_shared") == 0 || strcmp(method, "all") == 0){
+    if (strcmp(method, "gpu_shared") == 0 || strcmp(method, "all") == 0 || strcmp(method, "gpu_only") == 0){
         printf("\nComputing statystics for : 'gpu_convolution_shared()' :");
         
         for (k = 0; k < num_kernel_configurations; k++){
@@ -371,7 +371,7 @@ int main(int argc, char * argv []){
     ========================================================================================================================
     */
 
-    if (strcmp(method, "gpu_shared_constk") == 0 || strcmp(method, "all") == 0){
+    if (strcmp(method, "gpu_shared_constk") == 0 || strcmp(method, "all") == 0 || strcmp(method, "gpu_only") == 0){
         printf("\nComputing statystics for : 'gpu_convolution_shared_constk()' :");
         
         for (k = 0; k < num_kernel_configurations; k++){
@@ -457,7 +457,7 @@ int main(int argc, char * argv []){
     ===============================================================================================================================
     */
 
-    if (strcmp(method, "gpu_shared_constk_cached") == 0 || strcmp(method, "all") == 0){
+    if (strcmp(method, "gpu_shared_constk_cached") == 0 || strcmp(method, "all") == 0 || strcmp(method, "gpu_only") == 0){
         printf("\nComputing statystics for : 'gpu_convolution_shared_constk_cached()' :");
         
         for (k = 0; k < num_kernel_configurations; k++){
