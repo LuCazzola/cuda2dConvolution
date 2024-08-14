@@ -16,11 +16,14 @@ def get_vals(file_path):
         sys.exit(f"Error parsing file: {file_path}")
     
     vals = {
+        "kernel_size": data['kernel_size'],
         "matrix_size": data['matrix_size'],
         "mean_exec_time": data['mean_exec_time'],
         "stdev_exec_time": data['stdev_exec_time'],
         "mean_effective_bandwidth": data['mean_effective_bandwidth'],
-        "stdev_effective_bandwidth": data['stdev_effective_bandwidth']
+        "stdev_effective_bandwidth": data['stdev_effective_bandwidth'],
+        "mean_flops" : data['mean_flops'],
+        "stdev_flops" : data['stdev_flops']
     }
     
     return vals
@@ -46,10 +49,13 @@ def add_line(x_vals, y_vals, y_stdev, line_color='blue', label=None):
     # Fill between the lines
     plt.fill_between(x_fine, y_smooth - y_stdev_smooth, y_smooth + y_stdev_smooth, alpha=0.1, color=line_color)
     # Set x-axis tick labels
-    plt.xticks(x_numeric, x_vals)
+    plt.xticks(x_numeric, ['$' + val + '$' for val in x_vals])
+
+
 
 if __name__ == "__main__":
     
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
     ##
     # USER DEFINED DATA
     #   add as many blocks as lines you need to plot
@@ -57,49 +63,121 @@ if __name__ == "__main__":
     ##
     inputs = [
         {
-            "file_name": "data/blocks-gpu-coalesced_6-to-15-steps_5-blocksize_3-thX_5-thY.csv",
+            "file_name": "data/CPU-conv-naive_3-to-9-kernel_6-to-11-size_5-iter.csv",
             "line_color": "red",
-            "label": "blocks_coalesced-GPU"
+            "label": "Alg. 1"
         },
         {
-            "file_name": "data/blocks-gpu_6-to-15-steps_5-blocksize_3-thX_5-thY.csv",
-            "line_color": "green",
-            "label": "blocks-GPU"
-        },
-        {
-            "file_name": "data/data-blocks_version_O2.csv",
+            "file_name": "data/GPU-conv-naive_3-to-9-kernel_8-to-14-size_16-by-16-th-per-block_50-iter.csv",
             "line_color": "blue",
-            "label": "blocks-CPU (-O2)"
+            "label": "Alg. 2"
+        },
+        {
+            "file_name": "data/GPU-conv-shared_3-to-9-kernel_8-to-14-size_16-by-16-th-per-block_50-iter.csv",
+            "line_color": "green",
+            "label": "Alg. 3"
+        },
+        {
+            "file_name": "data/GPU-conv-shared-constk_3-to-9-kernel_8-to-14-size_16-by-16-th-per-block_50-iter.csv",
+            "line_color": "orange",
+            "label": "Alg. 4"
+        },
+        {
+            "file_name": "data/GPU-conv-shared-constk-cached_3-to-9-kernel_8-to-14-size_16-by-16-th-per-block_50-iter.csv",
+            "line_color": "purple",
+            "label": "Alg. 5"
         }
     ]
 
     # Begin processing
-    data = [get_vals(obj["file_name"]) for obj in inputs]
-    
-    # Display (matrix_size X mean_exec_time) graph
-    plt.figure(figsize=(10, 5))
-    for key, elem in enumerate(data):
-        obj = inputs[key]
-        add_line(elem["matrix_size"], elem["mean_exec_time"], elem["stdev_exec_time"], line_color=obj["line_color"], label=obj["label"])
+    data = [get_vals(obj["file_name"]) for obj in inputs]    
+    unique_kernels = sorted(set(data[0]["kernel_size"]))
 
-    # Customize the graph
-    plt.xlabel('Matrix Size')
-    plt.ylabel('Time (seconds)')
-    plt.legend(loc='upper left')
-    plt.xlim(0, len(data[0]["mean_exec_time"]) - 1)
-    plt.grid(axis='y')
-    plt.show()
+    '''
+    For each algorithm compare all kernel sizes (matrix_size X mean_flops) + (matrix_size X mean_effective_bandwidth)
+    '''
 
     # Display (matrix_size X mean_effective_bandwidth) graph
-    plt.figure(figsize=(10, 5))
     for key, elem in enumerate(data):
         obj = inputs[key]
-        add_line(elem["matrix_size"], elem["mean_effective_bandwidth"], elem["stdev_effective_bandwidth"], line_color=obj["line_color"], label=obj["label"])
 
-    # Customize the graph
-    plt.xlabel('Matrix Size')
-    plt.ylabel('Effective Bandwidth (GB/s)')
-    plt.legend(loc='upper left')
-    plt.xlim(0, len(data[0]["mean_effective_bandwidth"]) - 1)
-    plt.grid(axis='y')
-    plt.show()
+        plt.figure(figsize=(10, 5))
+        for i, k_size in enumerate(unique_kernels) :
+            # Filter data for the current kernel size
+            idxs = [i for i, x in enumerate(elem['kernel_size']) if x == k_size]
+            mat_sizes = [elem['matrix_size'][i] for i in idxs]
+            mean_flops = [elem['mean_flops'][i] for i in idxs]
+            stdev = [elem['stdev_flops'][i] for i in idxs]
+            add_line(mat_sizes, mean_flops, stdev, line_color=colors[i], label=f"{obj['label']} [{k_size}]")
+
+        # Customize the graph
+        plt.xlabel('Matrix Size')
+        plt.ylabel('TFLOPS')
+        plt.legend(loc='upper left')
+        plt.xlim(0, len(mean_flops) - 1)
+        plt.grid(axis='y')
+        plt.show()
+
+        plt.figure(figsize=(10, 5))
+        for i, k_size in enumerate(unique_kernels) :
+            # Filter data for the current kernel size
+            idxs = [i for i, x in enumerate(elem['kernel_size']) if x == k_size]
+            mat_sizes = [elem['matrix_size'][i] for i in idxs]
+            mean_bandwidth = [elem['mean_effective_bandwidth'][i] for i in idxs]
+            stdev = [elem['stdev_effective_bandwidth'][i] for i in idxs]
+            add_line(mat_sizes, mean_bandwidth, stdev, line_color=colors[i], label=f"{obj['label']} [{k_size}]")
+
+        # Customize the graph
+        plt.xlabel('Matrix Size')
+        plt.ylabel('Effective Bandwidth (GB/s)')
+        plt.legend(loc='upper left')
+        plt.xlim(0, len(mean_bandwidth) - 1)
+        plt.grid(axis='y')
+        plt.show()
+
+    
+    """
+    For each Kernel size compare all algorithms (matrix_size X mean_flops) + (matrix_size X mean_effective_bandwidth)
+    """ 
+
+    # Display graphs per matrix size for fixed kernel sizes
+    for kernel_size in unique_kernels:
+        plt.figure(figsize=(10, 5))
+        for key, elem in enumerate(data):
+            obj = inputs[key]
+            # Filter data for the current kernel size
+            idxs = [i for i, x in enumerate(elem['kernel_size']) if x == kernel_size]
+            if idxs:
+                mat_sizes = [elem['matrix_size'][i] for i in idxs]
+                mean_bandwidth = [elem['mean_effective_bandwidth'][i] for i in idxs]
+                stdev_bandwidth = [elem['stdev_effective_bandwidth'][i] for i in idxs]
+                add_line(mat_sizes, mean_bandwidth, stdev_bandwidth, line_color=obj["line_color"], label=obj["label"])
+        
+        # Customize the graph
+        plt.xlabel('Matrix Size')
+        plt.ylabel('Effective Bandwidth (GB/s)')
+        plt.legend(loc='upper left')
+        plt.title(f'Kernel Size: {kernel_size}')
+        plt.grid(axis='y')
+        plt.xlim(0, len(mean_bandwidth) - 1)
+        plt.show()
+
+        plt.figure(figsize=(10, 5))
+        for key, elem in enumerate(data):
+            obj = inputs[key]
+            # Filter data for the current kernel size
+            idxs = [i for i, x in enumerate(elem['kernel_size']) if x == kernel_size]
+            if idxs:
+                mat_sizes = [elem['matrix_size'][i] for i in idxs]
+                mean_flops = [elem['mean_flops'][i] for i in idxs]
+                stdev_flops = [elem['stdev_flops'][i] for i in idxs]
+                add_line(mat_sizes, mean_flops, stdev_flops, line_color=obj["line_color"], label=obj["label"])
+        
+        # Customize the graph
+        plt.xlabel('Matrix Size')
+        plt.ylabel('TFLOPS')
+        plt.legend(loc='upper left')
+        plt.title(f'Kernel Size: {kernel_size}')
+        plt.grid(axis='y')
+        plt.xlim(0, len(mean_flops) - 1)
+        plt.show()
