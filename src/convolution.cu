@@ -37,7 +37,7 @@ long int get_conv_bytes_read_write(const int W, const int H, const int C, const 
     long int TOT_SIZE = W * H * C; 
     long int TOT_K_DIM = K_DIM*K_DIM;
     
-    long int BR = sizeof(matrix_element) * ((TOT_K_DIM + TOT_K_DIM) * TOT_SIZE); 
+    long int BR = sizeof(matrix_element) * (TOT_SIZE + TOT_K_DIM); 
     long int BW = sizeof(matrix_element) * TOT_SIZE;
 
     return BR + BW;
