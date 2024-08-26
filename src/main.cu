@@ -143,7 +143,7 @@ int main(int argc, char * argv []){
         gpu_convolution_shared<<<numBlocks, dimBlocks, shared_mem_size>>>(d_in_image, d_k, d_out_image, input_image->W, input_image->H, input_image->C, K_DIM);
         checkCuda( cudaDeviceSynchronize() );
         TIMER_STOP;
-        checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE, cudaMemcpyDeviceToHost) );
+        checkCuda( cudaMemcpy(h_out_image, d_out_image, TOT_SIZE*sizeof(matrix_element), cudaMemcpyDeviceToHost) );
     }
     else if (strcmp(method, "gpu_shared_constk") == 0){
         const int PAD = (int)((K_DIM-1) / 2);
