@@ -21,7 +21,7 @@
 
 ### User Variables ###
 # method to use for image processing, available methods :
-method="gpu_shared"  
+method="gpu_shared_constk"  
 # - "cpu_naive"
 # - "gpu_naive"
 # - "gpu_shared"
@@ -31,10 +31,10 @@ method="gpu_shared"
 # path to the image to process
 input_png_path="images/lenna.png"
 # path to the output image
-output_png_path="images/out.png"    
+output_png_path="images/out.png"
 
 # kernel filter size : ( kernel_size x kernel_size )
-kernel_size=5           
+kernel_size=5
 # - MUST BE ODD NUMBER
 
 # thread block size in the x direction (as a power of 2 => 2^th_size_x)
