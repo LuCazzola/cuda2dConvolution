@@ -1,11 +1,17 @@
 # cuda2dConvolution
+The following repository contains all the material related to both the final project on **Parallel image processing** assigned during the GPU computing course : University of Trento (Italy) a.y. 2023/2024.
+<br>
+To see the report and better understand what this work is about, click [**Here**](report.pdf)
+
 
 ## Requisites
-
-Before testing commands run :
 ```
 git clone https://github.com/LuCazzola/cuda2dConvolution.git
 cd cuda2dConvolution
+```
+
+download the following modules or load them if you're in a SLURM cluster
+```
 moudle load cuda/12.1 libpng
 ```
 
@@ -18,11 +24,18 @@ Makefile defines 4 rules :
 <br>
 
 Bash scripts [run_main.sh](run_main.sh) and [run_benchmark.sh](run_benchmark.sh) each containing launching instructions and customizable variables are made available.
-To execute them run :
+
+### Main
 ```
 sbatch ./run_main.sh
 ```
-or
+Takes as input an .png image and returns as output a Gaussian blurred version of the image obtained with the selected kernel and configuration
+Results are stored in [**images folder**](images)
+
+### Benchmark
 ```
 sbatch ./run_benchmark.sh
 ```
+Generates a .csv benchmark file measuring mean + standard deviation of each secified algorithm : execution time, effective bandwidth, FLOPS.
+Results are stored in [**data folder**](data)
+
