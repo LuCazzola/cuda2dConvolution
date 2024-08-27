@@ -14,7 +14,7 @@ cd cuda2dConvolution
 
 download the following modules or load them if you're in a SLURM cluster
 ```
-moudle load cuda/12.1 libpng
+module load cuda/12.1 libpng
 ```
 
 <br>
