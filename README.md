@@ -16,6 +16,8 @@ download the following modules or load them if you're in a SLURM cluster
 moudle load cuda/12.1 libpng
 ```
 
+<br>
+
 ## Commands
 Makefile defines 4 rules :
 * **make** : builds main.cu + dependancies executables
