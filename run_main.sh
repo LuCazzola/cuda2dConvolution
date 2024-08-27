@@ -41,5 +41,6 @@ kernel_size=5
 th_size_x=4
 # thread block size in the y direction (as a power of 2 => 2^th_size_y)
 th_size_y=4
+# th_size_x & th_size_y MUST BE EQUAL
 
 ./bin/project-imageProcessing --method=$method --input_png_path=$input_png_path --output_png_path=$output_png_path --kernel_size=$kernel_size --th_size_x=$th_size_x --th_size_y=$th_size_y
