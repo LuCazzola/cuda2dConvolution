@@ -58,5 +58,6 @@ iterations_per_config=50
 th_size_x=4
 # thread block size in the y direction (as a power of 2 => 2^th_size_y)
 th_size_y=4
+# th_size_x & th_size_y MUST BE EQUAL
 
 ./bin/benchmark  --method=$method --min_kernel_size=$min_kernel_size --max_kernel_size=$max_kernel_size --min_powerof2=$min_powerof2 --max_powerof2=$max_powerof2 --iterations_per_config=$iterations_per_config --th_size_x=$th_size_x --th_size_y=$th_size_y
