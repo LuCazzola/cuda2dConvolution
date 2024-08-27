@@ -2,7 +2,10 @@
 The following repository contains all the material related to both the final project on **Parallel image processing** assigned during the GPU computing course : University of Trento (Italy) a.y. 2023/2024.
 <br>
 To see the report and better understand what this work is about, click [**Here**](report.pdf)
-@LuCazzola
+
+Authors : 
+* [@LuCazzola](https://github.com/LuCazzola)
+* [@chrisdalvit](https://github.com/chrisdalvit) 
 
 ## Requisites
 ```
