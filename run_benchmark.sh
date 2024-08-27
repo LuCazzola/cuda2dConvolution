@@ -14,8 +14,8 @@
 
 
 # DESCRIPTION :
-# "benchmark_gpu" runs matrix transposition on GPU algorithm : 
-# - The program runs transpose_blocks_gpu() / transpose_blocks_gpu_coalesced() kernels
+# runs Convolution operation algorithms : 
+# - The program runs cpu_convolution_naive() / gpu_convolution_naive() / gpu_convolution_shared() / gpu_convolution_shared_constk() / gpu_convolution_shared_constk_cached()
 # - The kernels are performed with different parameters configuration
 # - each configuration runs "iterations_per_config", then the matrix size is increased by one : 
 #      - starting with (2^min_powerof2 x 2^min_powerof2) up to (2^max_powerof2 x 2^max_powerof2) 
@@ -25,9 +25,9 @@
 # one or more .csv files containing :
 #  - Details about the run such as : block_size, th_size_x, th_size_y, & data type of matrix elements
 #  - a table which stores : 
-#      - { execution time, effective bandwidth } "iterations_per_config" times per configuration
-#      - { average execution time, average effective bandwidth } (per each configuration)
-#      - { standard deviation of execution time, standard deviation of effective bandwidth } (per each configuration)  
+#      - { execution time, effective bandwidth, flops } "iterations_per_config" times per configuration
+#      - { average execution time, average effective bandwidth, average flops } (per each configuration)
+#      - { standard deviation of execution time, standard deviation of effective bandwidth, standard deviation of flops } (per each configuration)  
 
 ### User Variables ###
 
