@@ -14,10 +14,13 @@
 
 
 # DESCRIPTION : 
-# ...
+#   Takes as input a .png image and a Convolution algorithm with associated parameters.
+#   The selected algorithm is used to apply Gaussian blurring on the input image 
 
 # OUTPUT :
-# ...
+#   - Run description
+#   - Run metrics : execution time, effective bandwidth, FLOPS
+#   - the output blurred image stored in 'images' folder
 
 ### User Variables ###
 # method to use for image processing, available methods :
