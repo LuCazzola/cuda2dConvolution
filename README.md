@@ -21,15 +21,14 @@ Makefile defines 4 rules :
 * **make benchmark** : builds benchmark.cu + dependancies executables
 * **make debug** :  builds both main.cu and benchmark.cu + dependancies with debugging flags
 * **make clean** : cleans all object files
-<br>
-
 Bash scripts [run_main.sh](run_main.sh) and [run_benchmark.sh](run_benchmark.sh) each containing launching instructions and customizable variables are made available.
 
 ### Main
 ```
 sbatch ./run_main.sh
 ```
-Takes as input an .png image and returns as output a Gaussian blurred version of the image obtained with the selected kernel and configuration
+Takes as input an .png image and returns as output a Gaussian blurred version of the image obtained with the selected kernel and configuration.
+<br>
 Results are stored in [**images folder**](images)
 
 ### Benchmark
@@ -37,5 +36,6 @@ Results are stored in [**images folder**](images)
 sbatch ./run_benchmark.sh
 ```
 Generates a .csv benchmark file measuring mean + standard deviation of each secified algorithm : execution time, effective bandwidth, FLOPS.
+<br>
 Results are stored in [**data folder**](data)
 
