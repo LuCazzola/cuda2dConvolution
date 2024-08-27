@@ -1,0 +1,8 @@
+@software{conv_LucaC_ChriD,
+  author = {Luca Cazzola, Christian Dalvit},
+  month = {8},
+  title = {{cuda convolution}},
+  url = {https://github.com/LuCazzola/cuda2dConvolution,
+  version = {1.0},
+  year = {2024}
+}
