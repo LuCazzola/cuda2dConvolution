@@ -3,9 +3,7 @@ The following repository contains all the material related to both the final pro
 <br>
 To see the report and better understand what this work is about, click [**Here**](report.pdf)
 
-Authors : 
-* [@LuCazzola](https://github.com/LuCazzola)
-* [@chrisdalvit](https://github.com/chrisdalvit) 
+Authors : [@LuCazzola](https://github.com/LuCazzola), [@chrisdalvit](https://github.com/chrisdalvit) 
 
 ## Requisites
 ```
