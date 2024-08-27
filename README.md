@@ -2,7 +2,7 @@
 The following repository contains all the material related to both the final project on **Parallel image processing** assigned during the GPU computing course : University of Trento (Italy) a.y. 2023/2024.
 <br>
 To see the report and better understand what this work is about, click [**Here**](report.pdf)
-
+@LuCazzola
 
 ## Requisites
 ```
@@ -21,6 +21,7 @@ Makefile defines 4 rules :
 * **make benchmark** : builds benchmark.cu + dependancies executables
 * **make debug** :  builds both main.cu and benchmark.cu + dependancies with debugging flags
 * **make clean** : cleans all object files
+<br>
 Bash scripts [run_main.sh](run_main.sh) and [run_benchmark.sh](run_benchmark.sh) each containing launching instructions and customizable variables are made available.
 
 ### Main
