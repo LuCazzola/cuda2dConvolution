@@ -25,7 +25,7 @@ Makefile defines 4 rules :
 * **make debug** :  builds both main.cu and benchmark.cu + dependancies with debugging flags
 * **make clean** : cleans all object files
 <br>
-Bash scripts [run_main.sh](run_main.sh) and [run_benchmark.sh](run_benchmark.sh) each containing launching instructions and customizable variables are made available.
+Bash scripts [**run_main.sh**](/run_main.sh) and [**run_benchmark.sh**](/run_benchmark.sh) each containing launching instructions and customizable variables are made available.
 
 ### Main
 ```
